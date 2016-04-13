@@ -1,6 +1,7 @@
 (function(){
   "use strict"
 
+  var Q = require('q');
   this.lava = require('./lava.js');
 
   /**
@@ -11,6 +12,6 @@
   /**
    * Let's go!
    */
-  this.lava.run();
+  Q(this.lava.init()).then(this.lava.run);
 
 }).apply(window);

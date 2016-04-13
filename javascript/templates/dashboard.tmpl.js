@@ -1,4 +1,4 @@
-lava.on('jsapi:ready', function (google) {
+lava.on('google:ready', function (google) {
     var dash = new lava.Dashboard("<label>");
 
     dash.setElement('<elemId>');

@@ -1,7 +1,5 @@
   var gulp = require('gulp'),
        log = require('gulp-util').log,
-     spawn = require('child_process').spawn,
-      exec = require('child_process').exec,
         sh = require('sh'),
       bump = require('gulp-bump'),
     jshint = require('gulp-jshint'),
@@ -22,17 +20,20 @@ gulp.task('default', [
 ]);
 
 gulp.task('browserify', function (done) {
+    var fs = require('fs'),
+browserify = require('browserify'),
+  watchify = require('watchify');
+
     function bundle() {
         b.bundle()
-         .pipe(source('lava.js'))
-         .pipe(gulp.dest('./javascript/dist'));
+         .pipe(fs.createWriteStream('./javascript/dist/lava.js'));
     }
 
-    var b = require('browserify')({
+    var b = browserify({
         entries: [pkg.config.entry],
         cache: {},
         packageCache: {},
-        plugin: [require('watchify')]
+        plugin: [watchify]
     });
 
     b.on('log', function (msg) {

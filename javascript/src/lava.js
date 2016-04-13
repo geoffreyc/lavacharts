@@ -2,6 +2,7 @@
 
 const EventEmitter = require('events');
 const util = require('util');
+const _ = require('underscore');
 
 /**
  * lava.js
@@ -11,21 +12,26 @@ const util = require('util');
  * Github:  https://github.com/kevinkhill/lavacharts
  * License: MIT
  */
-var lava = function() {
-  EventEmitter.call(this);
+var lava = function () {
+    EventEmitter.call(this);
 
-  this._charts        = [];
-  this._dashboards    = [];
-  this._readyCallback = function(){};
+    this.urls = {
+        jsapi: '//www.google.com/jsapi',
+        gstatic: '//www.gstatic.com/charts/loader.js'
+    };
 
-  this.dataVer = '0.6';
-  this.errors  = require('./lava/Errors.js');
+    this._charts        = [];
+    this._dashboards    = [];
+    this._packages      = [];
+    this._readyCallback = _.noop();
+
+    this.dataVer = '0.6';
+    this.errors = require('./lava/Errors.js');
 };
 
 util.inherits(lava, EventEmitter);
 
 module.exports = new lava();
-
 
 
 /**
@@ -40,17 +46,17 @@ lava.prototype.Dashboard = require('./lava/Dashboard.js');
 
 
 lava.prototype.DataTable = function (data) {
-  return new window.google.visualization.DataTable(data);
+    return new window.google.visualization.DataTable(data);
 };
 
 lava.prototype.ready = function (callback) {
-  if (typeof callback !== 'function') {
-    throw this.errors.INVALID_CALLBACK(callback);
-  } else {
-    this._readyCallback = callback;
-  }
+    if (typeof callback !== 'function') {
+        throw this.errors.INVALID_CALLBACK(callback);
+    } else {
+        this._readyCallback = callback;
+    }
 
-  this.on('ready', this._readyCallback);
+    this.on('ready', this._readyCallback);
 };
 
 /**
@@ -63,9 +69,19 @@ lava.prototype.ready = function (callback) {
  * @param {object} event
  * @param {object} chart
  * @param {function} callback
+ * @return {function}
  */
 lava.prototype.event = function (event, chart, callback) {
-  return callback(event, chart);
+    return callback(event, chart);
+};
+
+/**
+ * Adds a visualization package to the array for google to load.
+ *
+ * @param {string} pkg
+ */
+lava.prototype.registerPackage = function (pkg) {
+    this._packages.push(pkg);
 };
 
 /**
@@ -80,23 +96,23 @@ lava.prototype.event = function (event, chart, callback) {
  * @param {function} callback
  */
 lava.prototype.loadData = function (label, json, callback) {
-  this.getChart(label, function (chart) {
-    if (typeof json.data != 'undefined') {
-      chart.setData(json.data);
-    } else {
-      chart.setData(json);
-    }
+    this.getChart(label, function (chart) {
+        if (typeof json.data != 'undefined') {
+            chart.setData(json.data);
+        } else {
+            chart.setData(json);
+        }
 
-    if (typeof json.formats != 'undefined') {
-      chart.applyFormats(json.formats);
-    }
+        if (typeof json.formats != 'undefined') {
+            chart.applyFormats(json.formats);
+        }
 
-    chart.redraw();
+        chart.redraw();
 
-    if (typeof callback == 'function') {
-      callback(chart);
-    }
-  });
+        if (typeof callback == 'function') {
+            callback(chart);
+        }
+    });
 };
 
 /**
@@ -111,15 +127,15 @@ lava.prototype.loadData = function (label, json, callback) {
  * @param {function} callback
  */
 lava.prototype.loadOptions = function (label, json, callback) {
-  this.getChart(label, function (chart) {
-    chart.setOptions(json);
+    this.getChart(label, function (chart) {
+        chart.setOptions(json);
 
-    chart.redraw();
+        chart.redraw();
 
-    if (typeof callback == 'function') {
-      callback(chart);
-    }
-  });
+        if (typeof callback == 'function') {
+            callback(chart);
+        }
+    });
 };
 
 /**
@@ -128,13 +144,13 @@ lava.prototype.loadOptions = function (label, json, callback) {
  * @param chart Chart
  */
 lava.prototype.storeChart = function (chart) {
-  this._charts.push(chart);
+    this._charts.push(chart);
 };
 
 /**
  * Stores a dashboard within lava.js
  *
- * @param chart Chart
+ * @param dashboard Chart
  */
 lava.prototype.storeDashboard = function (dash) {
     this._dashboards.push(dash);
@@ -157,23 +173,21 @@ lava.prototype.storeDashboard = function (dash) {
  * @param  {function} callback
  */
 lava.prototype.getChart = function (label, callback) {
-  var _ = require('underscore');
+    if (typeof label != 'string') {
+        throw this.errors.INVALID_LABEL(label);
+    }
 
-  if (typeof label != 'string') {
-    throw this.errors.INVALID_LABEL(label);
-  }
+    if (typeof callback != 'function') {
+        throw this.errors.INVALID_CALLBACK(callback);
+    }
 
-  if (typeof callback != 'function') {
-    throw this.errors.INVALID_CALLBACK(callback);
-  }
+    var chart = _.find(this._charts, _.matches({label: label}), this);
 
-  var chart = _.find(this._charts, _.matches({label:label}), this);
-
-  if (! chart) {
-    throw this.errors.CHART_NOT_FOUND(label);
-  } else {
-    callback(chart);
-  }
+    if (!chart) {
+        throw this.errors.CHART_NOT_FOUND(label);
+    } else {
+        callback(chart);
+    }
 };
 
 /**
@@ -182,11 +196,11 @@ lava.prototype.getChart = function (label, callback) {
  * @param callback function
  */
 lava.prototype.getCharts = function (callback) {
-  if (typeof callback != 'function') {
-    throw this.errors.INVALID_CALLBACK(callback);
-  }
+    if (typeof callback != 'function') {
+        throw this.errors.INVALID_CALLBACK(callback);
+    }
 
-  callback(this._charts);
+    callback(this._charts);
 };
 
 /**
@@ -195,14 +209,12 @@ lava.prototype.getCharts = function (callback) {
  * This method is attached to the window resize event with a 300ms debounce
  * to make the charts responsive to the browser resizing.
  */
-lava.prototype.redrawCharts = function() {
-  var _ = require('underscore');
-
-  _.debounce(function() {
-    _.each(this._charts, function (chart) {
-      chart.redraw();
-    });
-  }.bind(this), 300);
+lava.prototype.redrawCharts = function () {
+    _.debounce(function () {
+        _.each(this._charts, function (chart) {
+            chart.redraw();
+        });
+    }.bind(this), 300);
 };
 
 /**
@@ -212,58 +224,86 @@ lava.prototype.redrawCharts = function() {
  * @param  {Function} callback Callback function
  */
 lava.prototype.getDashboard = function (label, callback) {
-  var _ = require('underscore');
+    if (typeof callback !== 'function') {
+        throw this.errors.INVALID_CALLBACK(callback);
+    }
 
-  if (typeof callback !== 'function') {
-    throw this.errors.INVALID_CALLBACK(callback);
-  }
+    var dash = _.find(this._dashboards, _.matches({label: label}), this);
 
-  var dash = _.find(this._dashboards, _.matches({label:label}), this);
-
-  if (! dash) {
-    throw this.errors.DASHBOARD_NOT_FOUND(label);
-  } else {
-    callback(dash);
-  }
+    if (!dash) {
+        throw this.errors.DASHBOARD_NOT_FOUND(label);
+    } else {
+        callback(dash);
+    }
 };
 
 /**
  * Load Google's jsapi and fire an event when ready.
  */
-lava.prototype.loadJsapi = function() {
-  var s = document.createElement('script');
+lava.prototype.loadGoogle = function (scriptToLoad) {
+    var s = document.createElement('script');
 
-  s.type = 'text/javascript';
-  s.async = true;
-  s.src = '//www.google.com/jsapi';
-  s.onload = s.onreadystatechange = function (event) {
-    event = event || window.event;
+    s.type = 'text/javascript';
+    s.async = true;
+    s.src = this.urls.gstatic;
+    s.onload = s.onreadystatechange = function (event) {
+        event = event || window.event;
 
-    if (event.type === "load" || (/loaded|complete/.test(this.readyState))) {
-      this.onload = this.onreadystatechange = null;
+        if (event.type === "load" || (/loaded|complete/.test(this.readyState))) {
+            this.onload = this.onreadystatechange = null;
 
-      this.emit('jsapi:ready', window.google);
-    }
-  }.bind(this);
+            this.emit('google:ready', window.google);
+        }
+    }.bind(this);
 
-  document.head.appendChild(s);
+    document.head.appendChild(s);
+};
+
+/**
+ * Initialize the lava.js module
+ */
+lava.prototype.init = function () {
+    var Q = require('q');
+    var deferred = Q.defer();
+
+    this.emit('init');
+
+    var renderedCount = 0;
+
+    this.on('rendered', function () {
+        renderedCount++;
+
+        if (renderedCount == this._charts.length) {
+            this.emit('ready');
+
+            this._readyCallback();
+        }
+    });
+
+    return deferred.promise;
 };
 
 /**
  * Run the lava.js module
  */
-lava.prototype.run = function() {
-  this.loadJsapi();
+lava.prototype.run = function () {
+    var Q = require('q');
 
-  var renderedCount = 0;
+    this.loadGoogle();
 
-  this.on('rendered', function() {
-    renderedCount++;
+    var promises = [];
 
-    if (renderedCount == this._charts.length) {
-      this.emit('ready');
+    this.on('chart:ready', function (promise) {
+       promises.push(promise);
+    });
 
-      this._readyCallback();
-    }
-  });
+    Q.all(promises).then(function() {
+        google.charts.load('current', {
+            packages: this._packages
+        });
+    });
+
+    //this.on('google:ready', function (google) {
+
+    //});
 };

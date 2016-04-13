@@ -1,4 +1,8 @@
-lava.on('jsapi:ready', function (google) {
+lava.on('init', function() {
+    lava.registerPackage('<chartPackage>');
+});
+
+lava.on('google:ready', function (google) {
     var chart = new lava.Chart('<chartType>', '<chartLabel>');
 
     chart.setElement('<elemId>');
@@ -21,16 +25,15 @@ lava.on('jsapi:ready', function (google) {
         }
 
         lava.emit('rendered');
-    };
+    }.apply(chart);
 
     lava.storeChart(chart);
 
-    google.load('visualization', '<chartVer>', {
-        packages: ['<chartPackage>'],
-        callback: function() {
-            lava.getChart('<chartLabel>', function (chart) {
-                chart.render();
-            });
-        }
+    var deferred = Q.defer();
+
+    deferred.resolve(function() {
+        window.google.charts.setOnLoadCallback(chart.render);
     });
+
+    lava.emit('chart:ready', deferred.promise);
 });
