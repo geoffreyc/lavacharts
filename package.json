@@ -1,6 +1,6 @@
 {
   "name": "lavacharts",
-  "version": "3.1.0",
+  "version": "3.0.3",
   "description": "Wrapper library for the Google Chart API",
   "homepage": "http://lavacharts.com",
   "author": "Kevin Hill",
@@ -10,6 +10,7 @@
     "node": "10.*"
   },
   "dependencies": {
+    "document-ready": "^1.0.0",
     "q": "^1.4.1",
     "underscore": "^1.8.3"
   },
@@ -26,6 +27,7 @@
     "gulp-util": "^3.0.7",
     "gulp-watch": "^4.2.4",
     "jasmine-core": "^2.2.0",
+    "jshint-stylish": "^2.1.0",
     "karma": "^0.13.0",
     "karma-chrome-launcher": "^0.2.0",
     "karma-detect-browsers": "^2.0.2",

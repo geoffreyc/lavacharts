@@ -1,63 +1,69 @@
-"use strict";
+/* jshint undef: true */
+/* globals document, google, require, module */
 
-/**
- * Chart.js
- *
- * @constructor
- */
-var Chart = function (type, label) {
-  this.type      = type;
-  this.label     = label;
-  this.element   = null;
-  this.data      = null;
-  this.chart     = null;
-  this.options   = null;
-  this.formats   = [];
-  this.draw      = null;
-  this.render    = null;
-  this.pngOutput = false;
-  this._errors   = require('./Errors.js');
-};
+(function() {
+    "use strict";
 
-Chart.prototype.setData = function (data) {
-  this.data = new window.google.visualization.DataTable(data, lava.dataVer);
-};
+    /**
+     * Chart.js
+     *
+     * @constructor
+     */
+    var Chart = function (type, label) {
+        this.type      = type;
+        this.label     = label;
+        this.package   = null;
+        this.element   = null;
+        this.data      = null;
+        this.chart     = null;
+        this.options   = null;
+        this.formats   = [];
+        this.draw      = null;
+        this.render    = null;
+        this.pngOutput = false;
+        this._errors   = require('./Errors.js');
+    };
 
-Chart.prototype.setOptions = function (options) {
-  this.options = options;
-};
+    Chart.prototype.setData = function (data) {
+        this.data = new google.visualization.DataTable(data);
+    };
 
-Chart.prototype.setPngOutput = function (png) {
-  this.pngOutput = Boolean(typeof png == 'undefinded' ? false : png);
-};
+    Chart.prototype.setOptions = function (options) {
+        this.options = options;
+    };
 
-Chart.prototype.setElement = function (elemId) {
-  this.element = document.getElementById(elemId);
+    Chart.prototype.setPngOutput = function (png) {
+        this.pngOutput = Boolean(typeof png == 'undefined' ? false : png);
+    };
 
-  if (! this.element) {
-    throw this._errors.ELEMENT_ID_NOT_FOUND(elemId);
-  }
-};
+    Chart.prototype.setElement = function (elemId) {
+        this.element = document.getElementById(elemId);
 
-Chart.prototype.redraw = function() {
-  this.chart.draw(this.data, this.options);
-};
+        if (! this.element) {
+            throw this._errors.ELEMENT_ID_NOT_FOUND(elemId);
+        }
+    };
 
-Chart.prototype.drawPng = function() {
-  var img = document.createElement('img');
-      img.src = this.chart.getImageURI();
+    Chart.prototype.redraw = function() {
+        this.chart.draw(this.data, this.options);
+    };
 
-  this.element.innerHTML = '';
-  this.element.appendChild(img);
-};
+    Chart.prototype.drawPng = function() {
+        var img = document.createElement('img');
+            img.src = this.chart.getImageURI();
 
-Chart.prototype.applyFormats = function (formatArr) {
-  for(var a=0; a < formatArr.length; a++) {
-    var formatJson = formatArr[a];
-    var formatter = new google.visualization[formatJson.type](formatJson.config);
+        this.element.innerHTML = '';
+        this.element.appendChild(img);
+    };
 
-    formatter.format(this.data, formatJson.index);
-  }
-};
+    Chart.prototype.applyFormats = function (formatArr) {
+        for(var a=0; a < formatArr.length; a++) {
+            var formatJson = formatArr[a];
+            var formatter = new google.visualization[formatJson.type](formatJson.config);
 
-module.exports = Chart;
+            formatter.format(this.data, formatJson.index);
+        }
+    };
+
+    module.exports = Chart;
+})();

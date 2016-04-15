@@ -3,6 +3,7 @@
         sh = require('sh'),
       bump = require('gulp-bump'),
     jshint = require('gulp-jshint'),
+   stylish = require('jshint-stylish'),
     uglify = require('gulp-uglify'),
     rename = require('gulp-rename'),
    replace = require('gulp-replace'),
@@ -47,7 +48,8 @@ browserify = require('browserify'),
 
 gulp.task('jshint', function (done) {
     return gulp.src('./javascript/src/**/*.js')
-               .pipe(jshint());
+               .pipe(jshint())
+               .pipe(jshint.reporter(stylish));
 });
 
 gulp.task('karma', function (done) {

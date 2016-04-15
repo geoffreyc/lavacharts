@@ -1,432 +1,153 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/* jshint undef: true, unused: true */
+/* globals window, require, console */
+
+/**
+ * Lava.js entry point for Browserify
+ */
 (function(){
-  "use strict"
+    "use strict";
 
-  var Q = require('q');
-  this.lava = require('./lava.js');
+    var ready = require('document-ready');
 
-  /**
-   * Adding the resize event listener for redrawing charts.
-   */
-  this.addEventListener('resize', this.lava.redrawCharts);
-
-  /**
-   * Let's go!
-   */
-  Q(this.lava.init()).then(this.lava.run);
-
-}).apply(window);
-
-},{"./lava.js":2,"q":11}],2:[function(require,module,exports){
-"use strict";
-
-const EventEmitter = require('events');
-const util = require('util');
-const _ = require('underscore');
-
-/**
- * lava.js
- *
- * Author:  Kevin Hill
- * Email:   kevinkhill@gmail.com
- * Github:  https://github.com/kevinkhill/lavacharts
- * License: MIT
- */
-var lava = function () {
-    EventEmitter.call(this);
-
-    this.urls = {
-        jsapi: '//www.google.com/jsapi',
-        gstatic: '//www.gstatic.com/charts/loader.js'
-    };
-
-    this._charts        = [];
-    this._dashboards    = [];
-    this._packages      = [];
-    this._readyCallback = _.noop();
-
-    this.dataVer = '0.6';
-    this.errors = require('./lava/Errors.js');
-};
-
-util.inherits(lava, EventEmitter);
-
-module.exports = new lava();
-
-
-/**
- * LavaChart object.
- */
-lava.prototype.Chart = require('./lava/Chart.js')
-
-/**
- * Dashboard object.
- */
-lava.prototype.Dashboard = require('./lava/Dashboard.js');
-
-
-lava.prototype.DataTable = function (data) {
-    return new window.google.visualization.DataTable(data);
-};
-
-lava.prototype.ready = function (callback) {
-    if (typeof callback !== 'function') {
-        throw this.errors.INVALID_CALLBACK(callback);
-    } else {
-        this._readyCallback = callback;
-    }
-
-    this.on('ready', this._readyCallback);
-};
-
-/**
- * Event wrapper for chart events.
- *
- *
- * Used internally when events are applied so the user event function has
- * access to the chart within the event callback.
- *
- * @param {object} event
- * @param {object} chart
- * @param {function} callback
- * @return {function}
- */
-lava.prototype.event = function (event, chart, callback) {
-    return callback(event, chart);
-};
-
-/**
- * Adds a visualization package to the array for google to load.
- *
- * @param {string} pkg
- */
-lava.prototype.registerPackage = function (pkg) {
-    this._packages.push(pkg);
-};
-
-/**
- * Loads a new DataTable into the chart and redraws.
- *
- *
- * Used with an AJAX call to a PHP method returning DataTable->toJson(),
- * a chart can be dynamically update in page, without reloads.
- *
- * @param {string} label
- * @param {string} json
- * @param {function} callback
- */
-lava.prototype.loadData = function (label, json, callback) {
-    this.getChart(label, function (chart) {
-        if (typeof json.data != 'undefined') {
-            chart.setData(json.data);
-        } else {
-            chart.setData(json);
-        }
-
-        if (typeof json.formats != 'undefined') {
-            chart.applyFormats(json.formats);
-        }
-
-        chart.redraw();
-
-        if (typeof callback == 'function') {
-            callback(chart);
-        }
-    });
-};
-
-/**
- * Loads new options into a chart and redraws.
- *
- *
- * Used with an AJAX call, or javascript events, to load a new array of options into a chart.
- * This can be used to update a chart dynamically, without reloads.
- *
- * @param {string} label
- * @param {string} json
- * @param {function} callback
- */
-lava.prototype.loadOptions = function (label, json, callback) {
-    this.getChart(label, function (chart) {
-        chart.setOptions(json);
-
-        chart.redraw();
-
-        if (typeof callback == 'function') {
-            callback(chart);
-        }
-    });
-};
-
-/**
- * Stores a chart within lava.js
- *
- * @param chart Chart
- */
-lava.prototype.storeChart = function (chart) {
-    this._charts.push(chart);
-};
-
-/**
- * Stores a dashboard within lava.js
- *
- * @param dashboard Chart
- */
-lava.prototype.storeDashboard = function (dash) {
-    this._dashboards.push(dash);
-};
-
-/**
- * Returns the LavaChart javascript objects
- *
- *
- * The LavaChart object holds all the user defined properties such as data, options, formats,
- * the GoogleChart object, and relative methods for internal use.
- *
- * The GoogleChart object is available as ".chart" from the returned LavaChart.
- * It can be used to access any of the available methods such as
- * getImageURI() or getChartLayoutInterface().
- * See https://google-developers.appspot.com/chart/interactive/docs/gallery/linechart#methods
- * for some examples relative to LineCharts.
- *
- * @param  {string}   label
- * @param  {function} callback
- */
-lava.prototype.getChart = function (label, callback) {
-    if (typeof label != 'string') {
-        throw this.errors.INVALID_LABEL(label);
-    }
-
-    if (typeof callback != 'function') {
-        throw this.errors.INVALID_CALLBACK(callback);
-    }
-
-    var chart = _.find(this._charts, _.matches({label: label}), this);
-
-    if (!chart) {
-        throw this.errors.CHART_NOT_FOUND(label);
-    } else {
-        callback(chart);
-    }
-};
-
-/**
- * Get the charts array and pass into the callback
- *
- * @param callback function
- */
-lava.prototype.getCharts = function (callback) {
-    if (typeof callback != 'function') {
-        throw this.errors.INVALID_CALLBACK(callback);
-    }
-
-    callback(this._charts);
-};
-
-/**
- * Redraws all of the registered charts on screen.
- *
- * This method is attached to the window resize event with a 300ms debounce
- * to make the charts responsive to the browser resizing.
- */
-lava.prototype.redrawCharts = function () {
-    _.debounce(function () {
-        _.each(this._charts, function (chart) {
-            chart.redraw();
-        });
-    }.bind(this), 300);
-};
-
-/**
- * Retrieve a Dashboard from lava.js
- *
- * @param  {string}   label    Dashboard label.
- * @param  {Function} callback Callback function
- */
-lava.prototype.getDashboard = function (label, callback) {
-    if (typeof callback !== 'function') {
-        throw this.errors.INVALID_CALLBACK(callback);
-    }
-
-    var dash = _.find(this._dashboards, _.matches({label: label}), this);
-
-    if (!dash) {
-        throw this.errors.DASHBOARD_NOT_FOUND(label);
-    } else {
-        callback(dash);
-    }
-};
-
-/**
- * Load Google's jsapi and fire an event when ready.
- */
-lava.prototype.loadGoogle = function (scriptToLoad) {
+    this.lava = require('./lava/Lava.js');
+/*
     var s = document.createElement('script');
 
     s.type = 'text/javascript';
-    s.async = true;
-    s.src = this.urls.gstatic;
-    s.onload = s.onreadystatechange = function (event) {
-        event = event || window.event;
+    s.innerHTML = 'lava.init();';
 
-        if (event.type === "load" || (/loaded|complete/.test(this.readyState))) {
-            this.onload = this.onreadystatechange = null;
+    document.body.appendChild(s);
+*/
 
-            this.emit('google:ready', window.google);
+    ready(function() {
+        console.log(lava._charts);
+    });
+
+}).apply(window);
+
+/**
+ * Adding the resize event listener for redrawing charts.
+ */
+//this.addEventListener('resize', this.lava.redrawCharts);
+
+/**
+ * Let's go!
+ */
+//this.lava.init();
+//().then(this.lava.run);
+
+},{"./lava/Lava.js":5,"document-ready":12}],2:[function(require,module,exports){
+/* jshint undef: true */
+/* globals document, google, require, module */
+
+(function() {
+    "use strict";
+
+    /**
+     * Chart.js
+     *
+     * @constructor
+     */
+    var Chart = function (type, label) {
+        this.type      = type;
+        this.label     = label;
+        this.package   = null;
+        this.element   = null;
+        this.data      = null;
+        this.chart     = null;
+        this.options   = null;
+        this.formats   = [];
+        this.draw      = null;
+        this.render    = null;
+        this.pngOutput = false;
+        this._errors   = require('./Errors.js');
+    };
+
+    Chart.prototype.setData = function (data) {
+        this.data = new google.visualization.DataTable(data);
+    };
+
+    Chart.prototype.setOptions = function (options) {
+        this.options = options;
+    };
+
+    Chart.prototype.setPngOutput = function (png) {
+        this.pngOutput = Boolean(typeof png == 'undefined' ? false : png);
+    };
+
+    Chart.prototype.setElement = function (elemId) {
+        this.element = document.getElementById(elemId);
+
+        if (! this.element) {
+            throw this._errors.ELEMENT_ID_NOT_FOUND(elemId);
         }
-    }.bind(this);
+    };
 
-    document.head.appendChild(s);
-};
+    Chart.prototype.redraw = function() {
+        this.chart.draw(this.data, this.options);
+    };
 
-/**
- * Initialize the lava.js module
- */
-lava.prototype.init = function () {
-    var Q = require('q');
-    var deferred = Q.defer();
+    Chart.prototype.drawPng = function() {
+        var img = document.createElement('img');
+            img.src = this.chart.getImageURI();
 
-    this.emit('init');
+        this.element.innerHTML = '';
+        this.element.appendChild(img);
+    };
 
-    var renderedCount = 0;
+    Chart.prototype.applyFormats = function (formatArr) {
+        for(var a=0; a < formatArr.length; a++) {
+            var formatJson = formatArr[a];
+            var formatter = new google.visualization[formatJson.type](formatJson.config);
 
-    this.on('rendered', function () {
-        renderedCount++;
-
-        if (renderedCount == this._charts.length) {
-            this.emit('ready');
-
-            this._readyCallback();
+            formatter.format(this.data, formatJson.index);
         }
-    });
+    };
 
-    return deferred.promise;
-};
+    module.exports = Chart;
+})();
 
-/**
- * Run the lava.js module
- */
-lava.prototype.run = function () {
-    var Q = require('q');
+},{"./Errors.js":4}],3:[function(require,module,exports){
+/* jshint undef: true */
+/* globals document, google, require, module */
 
-    this.loadGoogle();
+module.exports = (function() {
+    "use strict";
 
-    var promises = [];
+    /**
+     * Dashboard.js
+     *
+     * @constructor
+     */
+    var Dashboard = function (label) {
+        this.label     = label;
+        this.element   = null;
+        this.render    = null;
+        this.data      = null;
+        this.bindings  = [];
+        this.dashboard = null;
+        this._errors   = require('./Errors.js');
+    };
 
-    this.on('chart:ready', function (promise) {
-       promises.push(promise);
-    });
+    Dashboard.prototype.setData = function (data) {
+        this.data = new google.visualization.DataTable(data);
+    };
 
-    Q.all(promises).then(function() {
-        google.charts.load('current', {
-            packages: this._packages
-        });
-    });
+    Dashboard.prototype.setElement = function (elemId) {
+        this.element = document.getElementById(elemId);
 
-    //this.on('google:ready', function (google) {
+        if (! this.element) {
+            throw this._errors.ELEMENT_ID_NOT_FOUND(elemId);
+        }
+    };
 
-    //});
-};
+    return Dashboard;
+})();
 
-},{"./lava/Chart.js":3,"./lava/Dashboard.js":4,"./lava/Errors.js":5,"events":6,"q":11,"underscore":12,"util":10}],3:[function(require,module,exports){
-"use strict";
-
-/**
- * Chart.js
- *
- * @constructor
- */
-var Chart = function (type, label) {
-  this.type      = type;
-  this.label     = label;
-  this.element   = null;
-  this.data      = null;
-  this.chart     = null;
-  this.options   = null;
-  this.formats   = [];
-  this.draw      = null;
-  this.render    = null;
-  this.pngOutput = false;
-  this._errors   = require('./Errors.js');
-};
-
-Chart.prototype.setData = function (data) {
-  this.data = new window.google.visualization.DataTable(data, lava.dataVer);
-};
-
-Chart.prototype.setOptions = function (options) {
-  this.options = options;
-};
-
-Chart.prototype.setPngOutput = function (png) {
-  this.pngOutput = Boolean(typeof png == 'undefinded' ? false : png);
-};
-
-Chart.prototype.setElement = function (elemId) {
-  this.element = document.getElementById(elemId);
-
-  if (! this.element) {
-    throw this._errors.ELEMENT_ID_NOT_FOUND(elemId);
-  }
-};
-
-Chart.prototype.redraw = function() {
-  this.chart.draw(this.data, this.options);
-};
-
-Chart.prototype.drawPng = function() {
-  var img = document.createElement('img');
-      img.src = this.chart.getImageURI();
-
-  this.element.innerHTML = '';
-  this.element.appendChild(img);
-};
-
-Chart.prototype.applyFormats = function (formatArr) {
-  for(var a=0; a < formatArr.length; a++) {
-    var formatJson = formatArr[a];
-    var formatter = new google.visualization[formatJson.type](formatJson.config);
-
-    formatter.format(this.data, formatJson.index);
-  }
-};
-
-module.exports = Chart;
-
-},{"./Errors.js":5}],4:[function(require,module,exports){
-"use strict";
-
-/**
- * Dashboard.js
- *
- * @constructor
- */
-var Dashboard = function (label) {
-  this.label     = label;
-  this.element   = null;
-  this.render    = null;
-  this.data      = null;
-  this.bindings  = [];
-  this.dashboard = null;
-  this._errors   = require('./Errors.js');
-};
-
-Dashboard.prototype.setData = function (data) {
-  this.data = new window.google.visualization.DataTable(data, lava.dataVer);
-};
-
-Dashboard.prototype.setElement = function (elemId) {
-  this.element = document.getElementById(elemId);
-
-  if (! this.element) {
-    throw this._errors.ELEMENT_ID_NOT_FOUND(elemId);
-  }
-};
-
-module.exports = Dashboard;
-
-},{"./Errors.js":5}],5:[function(require,module,exports){
-"use strict";
+},{"./Errors.js":4}],4:[function(require,module,exports){
+/* jshint undef: true */
+/* globals module */
 
 /**
  * Errors.js
@@ -436,25 +157,391 @@ module.exports = Dashboard;
  * Github:  https://github.com/kevinkhill/lavacharts
  * License: MIT
  */
-module.exports = {
-  INVALID_CALLBACK : function (callback) {
-    return new Error('[Lavacharts] ' + typeof callback + ' is not a valid callback.');
-  },
-  INVALID_LABEL : function (label) {
-    return new Error('[Lavacharts] ' + typeof label + ' is not a valid label.');
-  },
-  ELEMENT_ID_NOT_FOUND : function (elemId) {
-    return new Error('[Lavacharts] DOM node #' + elemId + ' was not found.');
-  },
-  CHART_NOT_FOUND : function (label) {
-    return new Error('[Lavacharts] Chart with label "' + label + '" was not found.');
-  },
-  DASHBOARD_NOT_FOUND : function (label) {
-    return new Error('[Lavacharts] Dashboard with label "' + label + '" was not found.');
-  }
-};
+module.exports = (function() {
+    "use strict";
 
-},{}],6:[function(require,module,exports){
+    return {
+        INVALID_CALLBACK: function (callback) {
+            return new Error(
+                '[Lavacharts] ' + typeof callback + ' is not a valid callback.'
+            );
+        },
+        INVALID_LABEL: function (label) {
+            return new Error(
+                '[Lavacharts] ' + typeof label + ' is not a valid label.'
+            );
+        },
+        ELEMENT_ID_NOT_FOUND: function (elemId) {
+            return new Error(
+                '[Lavacharts] DOM node #' + elemId + ' was not found.'
+            );
+        },
+        CHART_NOT_FOUND: function (label) {
+            return new Error(
+                '[Lavacharts] Chart with label "' + label + '" was not found.'
+            );
+        },
+        DASHBOARD_NOT_FOUND: function (label) {
+            return new Error(
+                '[Lavacharts] Dashboard with label "' + label + '" was not found.'
+            );
+        }
+    };
+})();
+
+},{}],5:[function(require,module,exports){
+/* jshint undef: true, unused: true */
+/* globals window, document, console, google, module, require */
+
+/**
+ * Lava.js
+ *
+ * Author:  Kevin Hill
+ * Email:   kevinkhill@gmail.com
+ * Github:  https://github.com/kevinkhill/lavacharts
+ * License: MIT
+ */
+module.exports = (function() {
+    "use strict";
+
+    var EventEmitter = require('events');
+    var util = require('util');
+    var _ = require('underscore');
+
+
+    var Lava = function() {
+        EventEmitter.call(this);
+
+        this.Q = require('q');
+
+        this.urls = {
+            jsapi: '//www.google.com/jsapi',
+            gstatic: '//www.gstatic.com/charts/loader.js'
+        };
+
+        this._charts        = [];
+        this._chartRegistry = [];
+        this._dashboards    = [];
+        this._packages      = [];
+        this._readyCallback = _.noop();
+
+        this._errors = require('./Errors.js');
+    };
+
+    util.inherits(Lava, EventEmitter);
+
+    /**
+     * LavaChart object.
+     */
+    Lava.prototype.Chart = require('./Chart.js');
+
+    /**
+     * Dashboard object.
+     */
+    Lava.prototype.Dashboard = require('./Dashboard.js');
+
+
+    Lava.prototype.DataTable = function (data) {
+        return new google.visualization.DataTable(data);
+    };
+
+    Lava.prototype.ready = function (callback) {
+        if (typeof callback !== 'function') {
+            throw this._errors.INVALID_CALLBACK(callback);
+        } else {
+            this._readyCallback = callback;
+        }
+
+        this.on('ready', this._readyCallback);
+    };
+
+    /**
+     * Event wrapper for chart events.
+     *
+     *
+     * Used internally when events are applied so the user event function has
+     * access to the chart within the event callback.
+     *
+     * @param {object} event
+     * @param {object} chart
+     * @param {function} callback
+     * @return {function}
+     */
+    Lava.prototype.event = function (event, chart, callback) {
+        return callback(event, chart);
+    };
+
+    /**
+     * Adds a visualization package to the array for google to load.
+     *
+     * @param {string} pkg
+     */
+    Lava.prototype.registerPackage = function (pkg) {
+        this._packages.push(pkg);
+    };
+
+    /**
+     * Adds a chart init function to the array for lavachart to process.
+     *
+     * @param {function} initFunc
+     */
+    Lava.prototype.registerChart = function (initFunc) {
+        this._chartRegistry.push(initFunc);
+    };
+
+    /**
+     * Loads a new DataTable into the chart and redraws.
+     *
+     *
+     * Used with an AJAX call to a PHP method returning DataTable->toJson(),
+     * a chart can be dynamically update in page, without reloads.
+     *
+     * @param {string} label
+     * @param {string} json
+     * @param {function} callback
+     */
+    Lava.prototype.loadData = function (label, json, callback) {
+        this.getChart(label, function (chart) {
+            if (typeof json.data != 'undefined') {
+                chart.setData(json.data);
+            } else {
+                chart.setData(json);
+            }
+
+            if (typeof json.formats != 'undefined') {
+                chart.applyFormats(json.formats);
+            }
+
+            chart.redraw();
+
+            if (typeof callback == 'function') {
+                callback(chart);
+            }
+        });
+    };
+
+    /**
+     * Loads new options into a chart and redraws.
+     *
+     *
+     * Used with an AJAX call, or javascript events, to load a new array of options into a chart.
+     * This can be used to update a chart dynamically, without reloads.
+     *
+     * @param {string} label
+     * @param {string} json
+     * @param {function} callback
+     */
+    Lava.prototype.loadOptions = function (label, json, callback) {
+        this.getChart(label, function (chart) {
+            chart.setOptions(json);
+
+            chart.redraw();
+
+            if (typeof callback == 'function') {
+                callback(chart);
+            }
+        });
+    };
+
+    /**
+     * Stores a chart within Lava.js
+     *
+     * @param chart Chart
+     */
+    Lava.prototype.storeChart = function (chart) {
+        this._charts.push(chart);
+    };
+
+    /**
+     * Stores a dashboard within Lava.js
+     *
+     * @param dashboard Chart
+     */
+    Lava.prototype.storeDashboard = function (dash) {
+        this._dashboards.push(dash);
+    };
+
+    /**
+     * Returns the LavaChart javascript objects
+     *
+     *
+     * The LavaChart object holds all the user defined properties such as data, options, formats,
+     * the GoogleChart object, and relative methods for internal use.
+     *
+     * The GoogleChart object is available as ".chart" from the returned LavaChart.
+     * It can be used to access any of the available methods such as
+     * getImageURI() or getChartLayoutInterface().
+     * See https://google-developers.appspot.com/chart/interactive/docs/gallery/linechart#methods
+     * for some examples relative to LineCharts.
+     *
+     * @param  {string}   label
+     * @param  {function} callback
+     */
+    Lava.prototype.getChart = function (label, callback) {
+        if (typeof label != 'string') {
+            throw this._errors.INVALID_LABEL(label);
+        }
+
+        if (typeof callback != 'function') {
+            throw this._errors.INVALID_CALLBACK(callback);
+        }
+
+        var chart = _.find(this._charts, _.matches({label: label}), this);
+
+        if (!chart) {
+            throw this._errors.CHART_NOT_FOUND(label);
+        } else {
+            callback(chart);
+        }
+    };
+
+    /**
+     * Get the charts array and pass into the callback
+     *
+     * @param callback function
+     */
+    Lava.prototype.getCharts = function (callback) {
+        if (typeof callback != 'function') {
+            throw this._errors.INVALID_CALLBACK(callback);
+        }
+
+        callback(this._charts);
+    };
+
+    /**
+     * Redraws all of the registered charts on screen.
+     *
+     * This method is attached to the window resize event with a 300ms debounce
+     * to make the charts responsive to the browser resizing.
+     */
+    Lava.prototype.redrawCharts = function () {
+        _.debounce(function () {
+            _.each(this._charts, function (chart) {
+                chart.redraw();
+            });
+        }.bind(this), 300);
+    };
+
+    /**
+     * Retrieve a Dashboard from Lava.js
+     *
+     * @param  {string}   label    Dashboard label.
+     * @param  {Function} callback Callback function
+     */
+    Lava.prototype.getDashboard = function (label, callback) {
+        if (typeof callback !== 'function') {
+            throw this._errors.INVALID_CALLBACK(callback);
+        }
+
+        var dash = _.find(this._dashboards, _.matches({label: label}), this);
+
+        if (!dash) {
+            throw this._errors.DASHBOARD_NOT_FOUND(label);
+        } else {
+            callback(dash);
+        }
+    };
+
+    /**
+     * Load Google's jsapi and fire an event when ready.
+     */
+    Lava.prototype.loadGoogle = function() {
+        var s = document.createElement('script');
+
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = this.urls.gstatic;
+        s.onload = s.onreadystatechange = function (event) {
+            event = event || window.event;
+
+            if (event.type === "load" || (/loaded|complete/.test(this.readyState))) {
+                this.onload = this.onreadystatechange = null;
+
+                this.emit('google:ready', window.google);
+            }
+        }.bind(this);
+
+        document.head.appendChild(s);
+    };
+
+    /**
+     * Initialize the Lava.js module
+     */
+    Lava.prototype.init = function () {
+        var deferred = this.Q.defer();
+
+        console.log('preinit:'+this._charts.length);
+    /*
+        _.each(this._chartRegistry, function (initFunc) {
+            console.log('running chartInit');
+            initFunc();
+        });
+
+
+    */
+
+        //console.log(require('util').inspect(EventEmitter.listenerCount(this, 'init')));
+        console.log(EventEmitter.listenerCount(this, 'init'));
+        this.emit('init');
+    console.log('postinit:'+this._charts.length);
+
+    /*
+        var initializedCount = 0;
+
+        this.on('initialized', function () {
+            initializedCount++;
+
+            if (initializedCount == this._charts.length) {
+                console.log('postinit:'+this._charts.length);
+            }
+        });
+    */
+        var renderedCount = 0;
+
+        this.on('rendered', function () {
+            renderedCount++;
+
+            if (renderedCount == this._charts.length) {
+                this.emit('ready');
+
+                this._readyCallback();
+            }
+        });
+        
+        return deferred.promise;
+    };
+
+    /**
+     * Run the Lava.js module
+     */
+    Lava.prototype.run = function () {
+        var Q = require('q');
+
+        this.loadGoogle();
+
+        var promises = [];
+
+        this.on('chart:ready', function (promise) {
+           promises.push(promise);
+        });
+
+        Q.all(promises).then(function() {
+            google.charts.load('current', {
+                packages: this._packages
+            });
+        });
+
+        //this.on('google:ready', function (google) {
+
+        //});
+    };
+
+    return new Lava();
+})();
+
+},{"./Chart.js":2,"./Dashboard.js":3,"./Errors.js":4,"events":7,"q":15,"underscore":16,"util":11}],6:[function(require,module,exports){
+
+},{}],7:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -757,7 +844,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -782,7 +869,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -875,14 +962,14 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -1472,7 +1559,114 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":9,"_process":8,"inherits":7}],11:[function(require,module,exports){
+},{"./support/isBuffer":10,"_process":9,"inherits":8}],12:[function(require,module,exports){
+'use strict'
+
+var document = require('global/document')
+var nextTick = require('next-tick')
+
+module.exports = document.addEventListener ? ready : noop
+
+function ready (callback) {
+  if (document.readyState === 'complete') {
+    return nextTick(callback)
+  }
+
+  document.addEventListener('DOMContentLoaded', function onLoad () {
+    callback()
+  })
+}
+
+function noop () {}
+
+},{"global/document":13,"next-tick":14}],13:[function(require,module,exports){
+(function (global){
+var topLevel = typeof global !== 'undefined' ? global :
+    typeof window !== 'undefined' ? window : {}
+var minDoc = require('min-document');
+
+if (typeof document !== 'undefined') {
+    module.exports = document;
+} else {
+    var doccy = topLevel['__GLOBAL_DOCUMENT_CACHE@4'];
+
+    if (!doccy) {
+        doccy = topLevel['__GLOBAL_DOCUMENT_CACHE@4'] = minDoc;
+    }
+
+    module.exports = doccy;
+}
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"min-document":6}],14:[function(require,module,exports){
+(function (process){
+'use strict';
+
+var callable, byObserver;
+
+callable = function (fn) {
+	if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
+	return fn;
+};
+
+byObserver = function (Observer) {
+	var node = document.createTextNode(''), queue, i = 0;
+	new Observer(function () {
+		var data;
+		if (!queue) return;
+		data = queue;
+		queue = null;
+		if (typeof data === 'function') {
+			data();
+			return;
+		}
+		data.forEach(function (fn) { fn(); });
+	}).observe(node, { characterData: true });
+	return function (fn) {
+		callable(fn);
+		if (queue) {
+			if (typeof queue === 'function') queue = [queue, fn];
+			else queue.push(fn);
+			return;
+		}
+		queue = fn;
+		node.data = (i = ++i % 2);
+	};
+};
+
+module.exports = (function () {
+	// Node.js
+	if ((typeof process !== 'undefined') && process &&
+			(typeof process.nextTick === 'function')) {
+		return process.nextTick;
+	}
+
+	// MutationObserver=
+	if ((typeof document === 'object') && document) {
+		if (typeof MutationObserver === 'function') {
+			return byObserver(MutationObserver);
+		}
+		if (typeof WebKitMutationObserver === 'function') {
+			return byObserver(WebKitMutationObserver);
+		}
+	}
+
+	// W3C Draft
+	// http://dvcs.w3.org/hg/webperf/raw-file/tip/specs/setImmediate/Overview.html
+	if (typeof setImmediate === 'function') {
+		return function (cb) { setImmediate(callable(cb)); };
+	}
+
+	// Wide available standard
+	if (typeof setTimeout === 'function') {
+		return function (cb) { setTimeout(callable(cb), 0); };
+	}
+
+	return null;
+}());
+
+}).call(this,require('_process'))
+},{"_process":9}],15:[function(require,module,exports){
 (function (process){
 // vim:ts=4:sts=4:sw=4:
 /*!
@@ -3524,7 +3718,7 @@ return Q;
 });
 
 }).call(this,require('_process'))
-},{"_process":8}],12:[function(require,module,exports){
+},{"_process":9}],16:[function(require,module,exports){
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
