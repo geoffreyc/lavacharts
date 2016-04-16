@@ -12,28 +12,34 @@
 module.exports = (function() {
     "use strict";
 
-    var EventEmitter = require('events');
-    var util = require('util');
+    var Q = require('q');
     var _ = require('lodash');
-
+    var pkg = require('../../../package.json');
+    var util = require('util');
+    var EventEmitter = require('events');
 
     var Lava = function() {
         EventEmitter.call(this);
 
-        this.Q = require('q');
-
         this.urls = {
-            jsapi: '//www.google.com/jsapi',
+            jsapi:   '//www.google.com/jsapi',
             gstatic: '//www.gstatic.com/charts/loader.js'
         };
-
         this._charts        = [];
         this._chartRegistry = [];
         this._dashboards    = [];
         this._packages      = [];
         this._readyCallback = _.noop();
-        //this.log = require('winston');
         this._errors = require('./Errors.js');
+
+        this.log = function (msg) {
+            if (pkg.config.debug) {
+                console.log(msg);
+            }
+        };
+        this.defer = function() {
+            return Q.defer();
+        };
     };
 
     util.inherits(Lava, EventEmitter);
@@ -163,7 +169,7 @@ module.exports = (function() {
     /**
      * Stores a dashboard within Lava.js
      *
-     * @param dashboard Chart
+     * @param dash Dashboard
      */
     Lava.prototype.storeDashboard = function (dash) {
         this._dashboards.push(dash);
@@ -224,7 +230,7 @@ module.exports = (function() {
      */
     Lava.prototype.redrawCharts = function () {
         _.debounce(function () {
-            _.each(this._charts, function (chart) {
+            _.forEach(this._charts, function (chart) {
                 chart.redraw();
             });
         }.bind(this), 300);
@@ -254,26 +260,27 @@ module.exports = (function() {
      * Load Google's jsapi and fire an event when ready.
      */
     Lava.prototype.loadGoogle = function () {
-        var Q = require('q');
         var s = document.createElement('script');
-        var deferred = Q.defer();
+        var deferred = this.defer();
 
         s.type = 'text/javascript';
         s.async = true;
         s.src = this.urls.gstatic;
-        s.onload = s.onreadystatechange = function (event) {
+        s.onload = s.onreadystatechange = _.bind(function (event) {
             event = event || window.event;
 
             if (event.type === "load" || (/loaded|complete/.test(this.readyState))) {
                 this.onload = this.onreadystatechange = null;
-                console.log('google loaded')
+
+                lava.log('google loaded');
+
                 google.charts.load('current', {
                     packages: _.uniq(this._packages)
                 });
 
                 google.charts.setOnLoadCallback(deferred.resolve);
             }
-        }.bind(this);
+        }, this);
 
         document.head.appendChild(s);
 
@@ -284,9 +291,10 @@ module.exports = (function() {
      * Initialize the Lava.js module
      */
     Lava.prototype.init = function () {
+        this.log('lava.js initializing');
 
         /**
-         * Listen for the chart to initialize
+         * Listen for the charts to initialize
          * then begin loading google
          */
         var readyCount = 0;
@@ -294,17 +302,16 @@ module.exports = (function() {
             readyCount++;
 
             if (readyCount == this._charts.length) {
-                console.log('loading google');
+                lava.log('loading google');
 
                 this.loadGoogle()
-                    .then(function() {
-                        console.log('google:ready');
-                        //lava.emit('google:ready', google);
-                        _.forEach(lava._charts, function (chart) {
-                            console.log('configuring '+chart.label)
+                    .then(_.bind(function() {
+                        _.forEach(this._charts, function (chart) {
+                            lava.log('configuring '+chart.type+'::'+chart.label);
+
                             chart.configure(google);
                         });
-                    });
+                    }, this));
             }
         });
 
@@ -313,13 +320,13 @@ module.exports = (function() {
          * then fire the ready event
          */
         var renderCount = 0;
-        this.on('chart:rendered', function () {
+        this.on('chart:rendered', function (chart) {
+            lava.log('rendered '+chart.type+'::'+chart.label);
 
-            console.log('caught chart:rendered: '+renderCount);
             renderCount++;
 
             if (renderCount == this._charts.length) {
-                console.log('firing lava:ready');
+                lava.log('firing lava:ready');
 
                 this.emit('ready');
                 this._readyCallback();
@@ -330,6 +337,8 @@ module.exports = (function() {
          * Initialize the charts
          */
         _.forEach(this._charts, function (chart) {
+            lava.log('initializing '+chart.type+'::'+chart.label);
+
             chart.init();
         });
     };

@@ -23,7 +23,7 @@
         this.render    = null;
         this.pngOutput = false;
         this._errors   = require('./Errors.js');
-    };
+    }
 
     Chart.prototype.setData = function (data) {
         this.data = new google.visualization.DataTable(data);

@@ -1,5 +1,5 @@
   var gulp = require('gulp'),
-       log = require('gulp-util').log,
+     gutil = require('gulp-util'),
         sh = require('sh'),
       bump = require('gulp-bump'),
     jshint = require('gulp-jshint'),
@@ -25,20 +25,32 @@ gulp.task('browserify', function (done) {
 browserify = require('browserify'),
   watchify = require('watchify');
 
-    function bundle() {
-        b.bundle()
-         .pipe(fs.createWriteStream('./javascript/dist/lava.js'));
-    }
-
     var b = browserify({
+        debug: pkg.config.debug,
         entries: [pkg.config.entry],
         cache: {},
         packageCache: {},
         plugin: [watchify]
     });
 
+    function bundle() {
+        b.bundle()
+        .on('error', function(err){
+            if (err instanceof SyntaxError) {
+                gutil.log(gutil.colors.red('Syntax Error'));
+                console.log(err.message);
+                // console.log(err.filename+":"+err.loc.line);
+                console.log(err.codeFrame);
+            } else {
+                gutil.log(gutil.colors.red('Error'), err.message);
+            }
+            this.emit('end');
+        })
+        .pipe(fs.createWriteStream('./javascript/dist/lava.js'));
+    }
+
     b.on('log', function (msg) {
-        log(msg);
+        gutil.log(gutil.colors.green(msg));
     });
 
     b.on('update', bundle);

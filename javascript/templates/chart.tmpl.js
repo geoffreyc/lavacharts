@@ -1,5 +1,5 @@
 /* jshint undef: true, unused: true */
-/* globals lava */
+/* globals lava, google */
 
 (function(){
     "use strict";
@@ -9,11 +9,7 @@
     var chart = new lava.Chart('<chartType>', '<chartLabel>');
 
     chart.init = function() {
-        console.log('initializing: <chartLabel>');
-
-        //lava.on('google:ready', function (google) {
         chart.configure = function (google) {
-            console.log('caught google:ready');
             lava.getChart('<chartLabel>', function (chart) {
                 chart.setElement('<elemId>');
                 chart.setPngOutput(<pngOutput>);
@@ -34,7 +30,7 @@
                         this.drawPng();
                     }
 
-                    lava.emit('chart:rendered');
+                    lava.emit('chart:rendered', this);
                 }.apply(chart);
 
                 google.charts.setOnLoadCallback(chart.render);
