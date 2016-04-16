@@ -6,32 +6,20 @@
  */
 (function(){
     "use strict";
-
+    
+    var DEBUG = true;
     var ready = require('document-ready');
-
-    this.lava = require('./lava/Lava.js');
-/*
-    var s = document.createElement('script');
-
-    s.type = 'text/javascript';
-    s.innerHTML = 'lava.init();';
-
-    document.body.appendChild(s);
-*/
+    var lava = this.lava = require('./lava/Lava.js');
 
     ready(function() {
-        console.log(lava._charts);
+        /**
+         * Adding the resize event listener for redrawing charts.
+         */
+        window.addEventListener('resize', lava.redrawCharts);
+
+        /**
+         * Let's go!
+         */
+        lava.init();
     });
-
-}).apply(window);
-
-/**
- * Adding the resize event listener for redrawing charts.
- */
-//this.addEventListener('resize', this.lava.redrawCharts);
-
-/**
- * Let's go!
- */
-//this.lava.init();
-//().then(this.lava.run);
+}.apply(window));

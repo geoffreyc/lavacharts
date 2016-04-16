@@ -14,7 +14,7 @@ module.exports = (function() {
 
     var EventEmitter = require('events');
     var util = require('util');
-    var _ = require('underscore');
+    var _ = require('lodash');
 
 
     var Lava = function() {
@@ -32,7 +32,7 @@ module.exports = (function() {
         this._dashboards    = [];
         this._packages      = [];
         this._readyCallback = _.noop();
-
+        //this.log = require('winston');
         this._errors = require('./Errors.js');
     };
 
@@ -253,8 +253,10 @@ module.exports = (function() {
     /**
      * Load Google's jsapi and fire an event when ready.
      */
-    Lava.prototype.loadGoogle = function() {
+    Lava.prototype.loadGoogle = function () {
+        var Q = require('q');
         var s = document.createElement('script');
+        var deferred = Q.defer();
 
         s.type = 'text/javascript';
         s.async = true;
@@ -264,84 +266,72 @@ module.exports = (function() {
 
             if (event.type === "load" || (/loaded|complete/.test(this.readyState))) {
                 this.onload = this.onreadystatechange = null;
+                console.log('google loaded')
+                google.charts.load('current', {
+                    packages: _.uniq(this._packages)
+                });
 
-                this.emit('google:ready', window.google);
+                google.charts.setOnLoadCallback(deferred.resolve);
             }
         }.bind(this);
 
         document.head.appendChild(s);
+
+        return deferred.promise;
     };
 
     /**
      * Initialize the Lava.js module
      */
     Lava.prototype.init = function () {
-        var deferred = this.Q.defer();
 
-        console.log('preinit:'+this._charts.length);
-    /*
-        _.each(this._chartRegistry, function (initFunc) {
-            console.log('running chartInit');
-            initFunc();
-        });
+        /**
+         * Listen for the chart to initialize
+         * then begin loading google
+         */
+        var readyCount = 0;
+        this.on('chart:ready', function () {
+            readyCount++;
 
+            if (readyCount == this._charts.length) {
+                console.log('loading google');
 
-    */
-
-        //console.log(require('util').inspect(EventEmitter.listenerCount(this, 'init')));
-        console.log(EventEmitter.listenerCount(this, 'init'));
-        this.emit('init');
-    console.log('postinit:'+this._charts.length);
-
-    /*
-        var initializedCount = 0;
-
-        this.on('initialized', function () {
-            initializedCount++;
-
-            if (initializedCount == this._charts.length) {
-                console.log('postinit:'+this._charts.length);
+                this.loadGoogle()
+                    .then(function() {
+                        console.log('google:ready');
+                        //lava.emit('google:ready', google);
+                        _.forEach(lava._charts, function (chart) {
+                            console.log('configuring '+chart.label)
+                            chart.configure(google);
+                        });
+                    });
             }
         });
-    */
-        var renderedCount = 0;
 
-        this.on('rendered', function () {
-            renderedCount++;
+        /**
+         * Listen for the charts to finish rendering
+         * then fire the ready event
+         */
+        var renderCount = 0;
+        this.on('chart:rendered', function () {
 
-            if (renderedCount == this._charts.length) {
+            console.log('caught chart:rendered: '+renderCount);
+            renderCount++;
+
+            if (renderCount == this._charts.length) {
+                console.log('firing lava:ready');
+
                 this.emit('ready');
-
                 this._readyCallback();
             }
         });
-        
-        return deferred.promise;
-    };
 
-    /**
-     * Run the Lava.js module
-     */
-    Lava.prototype.run = function () {
-        var Q = require('q');
-
-        this.loadGoogle();
-
-        var promises = [];
-
-        this.on('chart:ready', function (promise) {
-           promises.push(promise);
+        /**
+         * Initialize the charts
+         */
+        _.forEach(this._charts, function (chart) {
+            chart.init();
         });
-
-        Q.all(promises).then(function() {
-            google.charts.load('current', {
-                packages: this._packages
-            });
-        });
-
-        //this.on('google:ready', function (google) {
-
-        //});
     };
 
     return new Lava();

@@ -3,19 +3,18 @@
 
 (function(){
     "use strict";
-    
+
+    lava.registerPackage('<chartPackage>');
+
     var chart = new lava.Chart('<chartType>', '<chartLabel>');
-    chart.package = '<chartPackage>';
 
-    lava.storeChart(chart);
+    chart.init = function() {
+        console.log('initializing: <chartLabel>');
 
-    lava.on('init', function() {
-        //lava.registerPackage('<chartPackage>');
-    console.log('init:<chartLabel>')
-
-        lava.on('google:ready', function (google) {
+        //lava.on('google:ready', function (google) {
+        chart.configure = function (google) {
+            console.log('caught google:ready');
             lava.getChart('<chartLabel>', function (chart) {
-
                 chart.setElement('<elemId>');
                 chart.setPngOutput(<pngOutput>);
 
@@ -35,19 +34,15 @@
                         this.drawPng();
                     }
 
-                    lava.emit('rendered');
+                    lava.emit('chart:rendered');
                 }.apply(chart);
 
-                //lava.storeChart(chart);
-
-                var deferred = Q.defer();
-
-                deferred.resolve(function() {
-                    window.google.charts.setOnLoadCallback(chart.render);
-                });
-
-                lava.emit('chart:ready', deferred.promise);
+                google.charts.setOnLoadCallback(chart.render);
             });
-        });
-    });
+        };
+
+        lava.emit('chart:ready');
+    };
+
+    lava.storeChart(chart);
 })();

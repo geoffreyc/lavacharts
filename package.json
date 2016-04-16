@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "document-ready": "^1.0.0",
-    "q": "^1.4.1",
-    "underscore": "^1.8.3"
+    "lodash": "^4.11.1",
+    "q": "^1.4.1"
   },
   "devDependencies": {
     "browserify": "^11.1.0",
@@ -50,6 +50,7 @@
     "url": "https://github.com/kevinkhill/lavacharts/issues"
   },
   "config": {
+    "debug": "true",
     "entry": "./javascript/src/lava.entry.js"
   },
   "scripts": {

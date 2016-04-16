@@ -9,16 +9,17 @@
      *
      * @constructor
      */
-    var Chart = function (type, label) {
+    function Chart (type, label) {
         this.type      = type;
         this.label     = label;
-        this.package   = null;
         this.element   = null;
         this.data      = null;
         this.chart     = null;
         this.options   = null;
         this.formats   = [];
         this.draw      = null;
+        this.init      = null;
+        this.configure = null;
         this.render    = null;
         this.pngOutput = false;
         this._errors   = require('./Errors.js');
