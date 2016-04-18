@@ -1,15 +1,15 @@
 /* jshint undef: true */
 /* globals document, google, require, module */
 
- (function() {
+module.exports = (function() {
     "use strict";
 
     /**
-     * Dashboard.js
+     * Dashboard Class
      *
      * @constructor
      */
-    var Dashboard = function (label) {
+    function Dashboard (label) {
         this.label     = label;
         this.element   = null;
         this.render    = null;
@@ -17,7 +17,7 @@
         this.bindings  = [];
         this.dashboard = null;
         this._errors   = require('./Errors.js');
-    };
+    }
 
     Dashboard.prototype.setData = function (data) {
         this.data = new google.visualization.DataTable(data);
@@ -31,5 +31,5 @@
         }
     };
 
-     module.exports = Dashboard;
+     return Dashboard;
 })();

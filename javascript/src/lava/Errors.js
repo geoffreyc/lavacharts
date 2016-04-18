@@ -1,5 +1,5 @@
 /* jshint undef: true */
-/* globals module */
+/* globals module, require */
 
 /**
  * Errors.js
@@ -12,31 +12,47 @@
 module.exports = (function() {
     "use strict";
 
-    return {
-        INVALID_CALLBACK: function (callback) {
-            return new Error(
-                '[Lavacharts] ' + typeof callback + ' is not a valid callback.'
-            );
-        },
-        INVALID_LABEL: function (label) {
-            return new Error(
-                '[Lavacharts] ' + typeof label + ' is not a valid label.'
-            );
-        },
-        ELEMENT_ID_NOT_FOUND: function (elemId) {
-            return new Error(
-                '[Lavacharts] DOM node #' + elemId + ' was not found.'
-            );
-        },
-        CHART_NOT_FOUND: function (label) {
-            return new Error(
-                '[Lavacharts] Chart with label "' + label + '" was not found.'
-            );
-        },
-        DASHBOARD_NOT_FOUND: function (label) {
-            return new Error(
-                '[Lavacharts] Dashboard with label "' + label + '" was not found.'
-            );
-        }
+    var ce = require('node-custom-errors');
+
+    var LavachartsError = ce.create('LavachartsError');
+
+    var errors = {
+        InvalidCallback: ce.create({
+            name: "InvalidCallback",
+            parent: LavachartsError,
+            construct: function (callback) {
+                this.message = '[Lavacharts] ' + typeof callback + ' is not a valid callback.';
+            }
+        }),
+        InvalidLabel: ce.create({
+            name: "InvalidLabel",
+            parent: LavachartsError,
+            construct: function (label) {
+                this.message = '[Lavacharts] ' + typeof label + ' is not a valid label.';
+            }
+        }),
+        ElementIdNotFound: ce.create({
+            name: "ElementIdNotFound",
+            parent: LavachartsError,
+            construct: function (elemId) {
+                this.message = '[Lavacharts] DOM node #' + elemId + ' was not found.';
+            }
+        }),
+        ChartNotFound: ce.create({
+            name: "ChartNotFound",
+            //parent: LavachartsError,
+            construct: function (label) {
+                this.message = '[Lavacharts] Chart with label "' + label + '" was not found.';
+            }
+        }).inherit("LavachartsError"),
+        DashboardNotFound: ce.create({
+            name: "DashboardNotFound",
+            parent: LavachartsError,
+            construct: function (label) {
+                this.message = '[Lavacharts] Dashboard with label "' + label + '" was not found.';
+            }
+        })
     };
+
+    return errors;
 })();

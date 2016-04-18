@@ -1,11 +1,11 @@
 /* jshint undef: true */
 /* globals document, google, require, module */
 
-(function() {
+module.exports = (function() {
     "use strict";
 
     /**
-     * Chart.js
+     * Chart Class
      *
      * @constructor
      */
@@ -66,5 +66,5 @@
         }
     };
 
-    module.exports = Chart;
+    return Chart;
 })();

@@ -68,7 +68,7 @@ gulp.task('karma', function (done) {
     var karma = require('karma');
 
     var server = new karma.Server({
-        configFile: __dirname + '/configs/karma.conf.js',
+        configFile: __dirname + '/javascript/karma/karma.conf.js',
         singleRun: argv.dev ? false : true
     }, function(exitStatus) {
         done(exitStatus ? "There are failing unit tests" : undefined);

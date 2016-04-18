@@ -18,15 +18,15 @@ module.exports = (function() {
     var util = require('util');
     var EventEmitter = require('events');
 
-    var Lava = function() {
+    function Lava() {
         EventEmitter.call(this);
 
         this.urls = {
             jsapi:   '//www.google.com/jsapi',
             gstatic: '//www.gstatic.com/charts/loader.js'
         };
+
         this._charts        = [];
-        this._chartRegistry = [];
         this._dashboards    = [];
         this._packages      = [];
         this._readyCallback = _.noop();
@@ -37,6 +37,7 @@ module.exports = (function() {
                 console.log(msg);
             }
         };
+
         this.defer = function() {
             return Q.defer();
         };
@@ -45,7 +46,7 @@ module.exports = (function() {
     util.inherits(Lava, EventEmitter);
 
     /**
-     * LavaChart object.
+     * Chart object.
      */
     Lava.prototype.Chart = require('./Chart.js');
 
@@ -54,19 +55,20 @@ module.exports = (function() {
      */
     Lava.prototype.Dashboard = require('./Dashboard.js');
 
-
-    Lava.prototype.DataTable = function (data) {
-        return new google.visualization.DataTable(data);
-    };
-
+    /**
+     * Assigns a callback for when the charts are ready to be interacted with.
+     *
+     * This is used to wrap calls to lava.loadData() or lava.loadOptions()
+     * to protect against accessing charts that aren't loaded yet
+     *
+     * @param {function} callback
+     */
     Lava.prototype.ready = function (callback) {
         if (typeof callback !== 'function') {
-            throw this._errors.INVALID_CALLBACK(callback);
-        } else {
-            this._readyCallback = callback;
+            throw new this._errors.InvalidCallback(callback);
         }
 
-        this.on('ready', this._readyCallback);
+        this._readyCallback = callback;
     };
 
     /**
@@ -95,16 +97,7 @@ module.exports = (function() {
     };
 
     /**
-     * Adds a chart init function to the array for lavachart to process.
-     *
-     * @param {function} initFunc
-     */
-    Lava.prototype.registerChart = function (initFunc) {
-        this._chartRegistry.push(initFunc);
-    };
-
-    /**
-     * Loads a new DataTable into the chart and redraws.
+     * Loads new data into the chart and redraws.
      *
      *
      * Used with an AJAX call to a PHP method returning DataTable->toJson(),
@@ -193,20 +186,20 @@ module.exports = (function() {
      */
     Lava.prototype.getChart = function (label, callback) {
         if (typeof label != 'string') {
-            throw this._errors.INVALID_LABEL(label);
+            throw new this._errors.InvalidLabel(label);
         }
 
         if (typeof callback != 'function') {
-            throw this._errors.INVALID_CALLBACK(callback);
+            throw new this._errors.InvalidCallback(callback);
         }
 
-        var chart = _.find(this._charts, _.matches({label: label}), this);
+        var chart = _.find(this._charts, {label: label});
 
         if (!chart) {
-            throw this._errors.CHART_NOT_FOUND(label);
-        } else {
-            callback(chart);
+            throw new this._errors.ChartNotFound(label);
         }
+
+        callback(chart);
     };
 
     /**
@@ -216,7 +209,7 @@ module.exports = (function() {
      */
     Lava.prototype.getCharts = function (callback) {
         if (typeof callback != 'function') {
-            throw this._errors.INVALID_CALLBACK(callback);
+            throw new this._errors.InvalidCallback(callback);
         }
 
         callback(this._charts);
@@ -244,16 +237,16 @@ module.exports = (function() {
      */
     Lava.prototype.getDashboard = function (label, callback) {
         if (typeof callback !== 'function') {
-            throw this._errors.INVALID_CALLBACK(callback);
+            throw new this._errors.InvalidCallback(callback);
         }
 
         var dash = _.find(this._dashboards, _.matches({label: label}), this);
 
         if (!dash) {
-            throw this._errors.DASHBOARD_NOT_FOUND(label);
-        } else {
-            callback(dash);
+            throw new this._errors.DashboardNotFound(label);
         }
+
+        callback(dash);
     };
 
     /**
@@ -326,9 +319,8 @@ module.exports = (function() {
             renderCount++;
 
             if (renderCount == this._charts.length) {
-                lava.log('firing lava:ready');
+                lava.log('running ready callback');
 
-                this.emit('ready');
                 this._readyCallback();
             }
         });
