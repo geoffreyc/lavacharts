@@ -84,6 +84,10 @@ module.exports = (function() {
      * @return {function}
      */
     Lava.prototype.event = function (event, chart, callback) {
+        if (typeof callback !== 'function') {
+            throw new this._errors.InvalidCallback(callback);
+        }
+        
         return callback(event, chart);
     };
 
