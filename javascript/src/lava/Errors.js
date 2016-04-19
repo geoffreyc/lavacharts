@@ -40,11 +40,11 @@ module.exports = (function() {
         }),
         ChartNotFound: ce.create({
             name: "ChartNotFound",
-            //parent: LavachartsError,
+            parent: LavachartsError,
             construct: function (label) {
                 this.message = '[Lavacharts] Chart with label "' + label + '" was not found.';
             }
-        }).inherit("LavachartsError"),
+        }),
         DashboardNotFound: ce.create({
             name: "DashboardNotFound",
             parent: LavachartsError,
@@ -53,6 +53,6 @@ module.exports = (function() {
             }
         })
     };
-
+    
     return errors;
 })();

@@ -1,6 +1,5 @@
   var gulp = require('gulp'),
      gutil = require('gulp-util'),
-        sh = require('sh'),
       bump = require('gulp-bump'),
     jshint = require('gulp-jshint'),
    stylish = require('jshint-stylish'),
@@ -68,7 +67,7 @@ gulp.task('karma', function (done) {
     var karma = require('karma');
 
     var server = new karma.Server({
-        configFile: __dirname + '/javascript/karma/karma.conf.js',
+        configFile: 'karma.conf.js',
         singleRun: argv.dev ? false : true
     }, function(exitStatus) {
         done(exitStatus ? "There are failing unit tests" : undefined);
@@ -88,12 +87,4 @@ gulp.task('bump', function (done) { //-v=1.2.3
     gulp.src(['./README.md', './.travis.yml'])
         .pipe(replace(/("|=|\/|-)[0-9]+\.[0-9]+/g, '$1'+minorVersion))
         .pipe(gulp.dest('./'));
-});
-
-gulp.task('php:cs', function (done) {
-    sh('./vendor/bin/phpcs -n --standard=PSR2 ./src ./tests');
-});
-
-gulp.task('php:fix', function (done) {
-    sh('./vendor/bin/phpcbf -n --standard=PSR2 ./src ./tests');
 });

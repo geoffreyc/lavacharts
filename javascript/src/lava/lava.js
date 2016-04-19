@@ -41,7 +41,7 @@ module.exports = (function() {
         this.defer = function() {
             return Q.defer();
         };
-    };
+    }
 
     util.inherits(Lava, EventEmitter);
 
