@@ -14,11 +14,24 @@ module.exports = (function() {
 
     var Q = require('q');
     var _ = require('lodash');
-    var pkg = require('../../../package.json');
     var util = require('util');
     var EventEmitter = require('events');
 
     function Lava() {
+        /**
+         * Defining the Chart class within the module.
+         *
+         * @type {Chart}
+         */
+        this.Chart = require('./Chart.js');
+
+        /**
+         * Defining the Dashboard class within the module.
+         *
+         * @type {Dashboard}
+         */
+        this.Dashboard = require('./Dashboard.js');
+
         /**
          * Setting the debug flag
          *
@@ -86,14 +99,25 @@ module.exports = (function() {
     util.inherits(Lava, EventEmitter);
 
     /**
-     * Chart object.
+     * Create a new Chart.
+     *
+     * @param  {string} type Type of chart to create
+     * @param  {string} type Label for the chart
+     * @return {Chart}
      */
-    Lava.prototype.Chart = require('./Chart.js');
+    Lava.prototype.createChart = function (type, label) {
+        return new this.Chart(type, label);
+    };
 
     /**
-     * Dashboard object.
+     * Create a new Dashboard.
+     *
+     * @param  {string} type Label for the chart
+     * @return {Dashboard}
      */
-    Lava.prototype.Dashboard = require('./Dashboard.js');
+    Lava.prototype.createDashboard = function () {
+        return new this.Dashboard(label);
+    };
 
     /**
      * Assigns a callback for when the charts are ready to be interacted with.
@@ -178,33 +202,42 @@ module.exports = (function() {
      * @param {function} callback
      */
     Lava.prototype.loadOptions = function (label, json, callback) {
+        var callback = typeof callback !== 'undefined' ? callback : _.noop();
+
+        if (typeof callback !== 'function') {
+            throw new this._errors.InvalidCallback(callback);
+        }
+
         this.getChart(label, function (chart) {
             chart.setOptions(json);
 
             chart.redraw();
 
-            if (typeof callback == 'function') {
-                callback(chart);
-            }
+            callback(chart);
         });
     };
 
     /**
-     * Stores a chart within Lava.js
+     * Redraws all of the registered charts on screen.
      *
-     * @param chart Chart
+     * This method is attached to the window resize event with a 300ms debounce
+     * to make the charts responsive to the browser resizing.
      */
-    Lava.prototype.storeChart = function (chart) {
-        this._charts.push(chart);
+    Lava.prototype.redrawCharts = function () {
+        _.debounce(function () {
+            _.forEach(this._charts, function (chart) {
+                chart.redraw();
+            });
+        }.bind(this), 300);
     };
 
     /**
-     * Stores a dashboard within Lava.js
+     * Stores a chart within the module.
      *
-     * @param dash Dashboard
+     * @param {Chart} chart
      */
-    Lava.prototype.storeDashboard = function (dash) {
-        this._dashboards.push(dash);
+    Lava.prototype.storeChart = function (chart) {
+        this._charts.push(chart);
     };
 
     /**
@@ -222,6 +255,9 @@ module.exports = (function() {
      *
      * @param  {string}   label
      * @param  {function} callback
+     * @throws InvalidLabel
+     * @throws InvalidCallback
+     * @throws ChartNotFound
      */
     Lava.prototype.getChart = function (label, callback) {
         if (typeof label != 'string') {
@@ -242,30 +278,12 @@ module.exports = (function() {
     };
 
     /**
-     * Get the charts array and pass into the callback
+     * Stores a dashboard within the module.
      *
-     * @param callback function
+     * @param {Dashboard} dash
      */
-    Lava.prototype.getCharts = function (callback) {
-        if (typeof callback != 'function') {
-            throw new this._errors.InvalidCallback(callback);
-        }
-
-        callback(this._charts);
-    };
-
-    /**
-     * Redraws all of the registered charts on screen.
-     *
-     * This method is attached to the window resize event with a 300ms debounce
-     * to make the charts responsive to the browser resizing.
-     */
-    Lava.prototype.redrawCharts = function () {
-        _.debounce(function () {
-            _.forEach(this._charts, function (chart) {
-                chart.redraw();
-            });
-        }.bind(this), 300);
+    Lava.prototype.storeDashboard = function (dash) {
+        this._dashboards.push(dash);
     };
 
     /**
@@ -273,15 +291,22 @@ module.exports = (function() {
      *
      * @param  {string}   label    Dashboard label.
      * @param  {Function} callback Callback function
+     * @throws InvalidLabel
+     * @throws InvalidCallback
+     * @throws DashboardNotFound
      */
     Lava.prototype.getDashboard = function (label, callback) {
+        if (typeof label != 'string') {
+            throw new this._errors.InvalidLabel(label);
+        }
+
         if (typeof callback !== 'function') {
             throw new this._errors.InvalidCallback(callback);
         }
 
-        var dash = _.find(this._dashboards, _.matches({label: label}), this);
+        var dash = _.find(this._dashboards, {label: label});
 
-        if (!dash) {
+        if (dash instanceof lava.Dashboard === false) {
             throw new this._errors.DashboardNotFound(label);
         }
 

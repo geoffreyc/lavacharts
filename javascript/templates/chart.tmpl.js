@@ -4,7 +4,7 @@
 (function(){
     "use strict";
 
-    var chart = new lava.Chart('<chartType>', '<chartLabel>');
+    var chart = lava.createChart('<chartType>', '<chartLabel>');
 
     chart.init = function() {
         chart.package = '<chartPackage>';

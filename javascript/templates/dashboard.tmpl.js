@@ -1,5 +1,6 @@
+//@TODO UPDATE MEEEEEEEEEEEEEEEE
 lava.on('google:ready', function (google) {
-    var dash = new lava.Dashboard("<label>");
+    var dash = lava.createDashboard('<label>');
 
     dash.setElement('<elemId>');
 
