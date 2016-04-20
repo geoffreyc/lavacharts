@@ -19,28 +19,61 @@ module.exports = (function() {
     var EventEmitter = require('events');
 
     function Lava() {
-        EventEmitter.call(this);
-
+        /**
+         * Urls to Google's resources
+         *
+         * @type {{jsapi: string, gstatic: string}}
+         */
         this.urls = {
             jsapi:   '//www.google.com/jsapi',
             gstatic: '//www.gstatic.com/charts/loader.js'
         };
 
-        this._charts        = [];
-        this._dashboards    = [];
-        this._packages      = [];
+        /**
+         * Array of charts stored in the module.
+         *
+         * @type {Array.<Chart>}
+         * @private
+         */
+        this._charts = [];
+
+        /**
+         * Array of dashboards stored in the module.
+         *
+         * @type {Array.<Dashboard>}
+         * @private
+         */
+        this._dashboards = [];
+
+        /**
+         * Ready callback to be called when the module is finished running.
+         *
+         * @type {function}
+         * @private
+         */
         this._readyCallback = _.noop();
+
+        /**
+         * Error definitions for the module.
+         */
         this._errors = require('./Errors.js');
 
-        this.log = function (msg) {
+        /**
+         * Conditional debug logging method.
+         *
+         * @param {string} Message to log.
+         */
+        this._log = function (msg) {
             if (pkg.config.debug) {
                 console.log(msg);
             }
         };
 
-        this.defer = function() {
+        this._defer = function() {
             return Q.defer();
         };
+
+        EventEmitter.call(this);
     }
 
     util.inherits(Lava, EventEmitter);
@@ -87,17 +120,8 @@ module.exports = (function() {
         if (typeof callback !== 'function') {
             throw new this._errors.InvalidCallback(callback);
         }
-        
-        return callback(event, chart);
-    };
 
-    /**
-     * Adds a visualization package to the array for google to load.
-     *
-     * @param {string} pkg
-     */
-    Lava.prototype.registerPackage = function (pkg) {
-        this._packages.push(pkg);
+        return callback(event, chart);
     };
 
     /**
@@ -258,7 +282,7 @@ module.exports = (function() {
      */
     Lava.prototype.loadGoogle = function () {
         var s = document.createElement('script');
-        var deferred = this.defer();
+        var deferred = this._defer();
 
         s.type = 'text/javascript';
         s.async = true;
@@ -269,10 +293,10 @@ module.exports = (function() {
             if (event.type === "load" || (/loaded|complete/.test(this.readyState))) {
                 this.onload = this.onreadystatechange = null;
 
-                lava.log('google loaded');
+                lava._log('google loaded');
 
                 google.charts.load('current', {
-                    packages: _.uniq(this._packages)
+                    packages: _.uniq(_.map(this._charts, 'package'))
                 });
 
                 google.charts.setOnLoadCallback(deferred.resolve);
@@ -288,7 +312,7 @@ module.exports = (function() {
      * Initialize the Lava.js module
      */
     Lava.prototype.init = function () {
-        this.log('lava.js initializing');
+        this._log('lava.js initializing');
 
         /**
          * Listen for the charts to initialize
@@ -299,12 +323,12 @@ module.exports = (function() {
             readyCount++;
 
             if (readyCount == this._charts.length) {
-                lava.log('loading google');
+                lava._log('loading google');
 
                 this.loadGoogle()
                     .then(_.bind(function() {
                         _.forEach(this._charts, function (chart) {
-                            lava.log('configuring '+chart.type+'::'+chart.label);
+                            lava._log('configuring '+chart.type+'::'+chart.label);
 
                             chart.configure(google);
                         });
@@ -318,12 +342,12 @@ module.exports = (function() {
          */
         var renderCount = 0;
         this.on('chart:rendered', function (chart) {
-            lava.log('rendered '+chart.type+'::'+chart.label);
+            lava._log('rendered '+chart.type+'::'+chart.label);
 
             renderCount++;
 
             if (renderCount == this._charts.length) {
-                lava.log('running ready callback');
+                lava._log('running ready callback');
 
                 this._readyCallback();
             }
@@ -333,7 +357,7 @@ module.exports = (function() {
          * Initialize the charts
          */
         _.forEach(this._charts, function (chart) {
-            lava.log('initializing '+chart.type+'::'+chart.label);
+            lava._log('initializing '+chart.type+'::'+chart.label);
 
             chart.init();
         });

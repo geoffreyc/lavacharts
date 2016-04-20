@@ -4,37 +4,34 @@
 (function(){
     "use strict";
 
-    lava.registerPackage('<chartPackage>');
-
     var chart = new lava.Chart('<chartType>', '<chartLabel>');
 
     chart.init = function() {
+        chart.package = '<chartPackage>';
+        chart.setElement('<elemId>');
+        chart.setPngOutput(<pngOutput>);
+
         chart.configure = function (google) {
-            lava.getChart('<chartLabel>', function (chart) {
-                chart.setElement('<elemId>');
-                chart.setPngOutput(<pngOutput>);
+            chart.render = function (data) {
+                this.setData(<chartData>);
 
-                chart.render = function (data) {
-                    this.setData(<chartData>);
+                this.options = <chartOptions>;
 
-                    this.options = <chartOptions>;
+                this.chart = new <chartClass>(this.element);
 
-                    this.chart = new <chartClass>(this.element);
+                <formats>
+                <events>
 
-                    <formats>
-                    <events>
+                this.chart.draw(this.data, this.options);
 
-                    this.chart.draw(this.data, this.options);
+                if (this.pngOutput === true) {
+                    this.drawPng();
+                }
 
-                    if (this.pngOutput === true) {
-                        this.drawPng();
-                    }
+                lava.emit('chart:rendered', this);
+            }.apply(chart);
 
-                    lava.emit('chart:rendered', this);
-                }.apply(chart);
-
-                google.charts.setOnLoadCallback(chart.render);
-            });
+            google.charts.setOnLoadCallback(chart.render);
         };
 
         lava.emit('chart:ready');

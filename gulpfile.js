@@ -1,15 +1,10 @@
-  var gulp = require('gulp'),
-     gutil = require('gulp-util'),
-      bump = require('gulp-bump'),
-    jshint = require('gulp-jshint'),
-   stylish = require('jshint-stylish'),
-    uglify = require('gulp-uglify'),
-    rename = require('gulp-rename'),
-   replace = require('gulp-replace'),
-sourcemaps = require('gulp-sourcemaps'),
-    source = require('vinyl-source-stream'),
-    buffer = require('vinyl-buffer'),
-      argv = require('yargs').array('browsers').argv;
+var gulp = require('gulp'),
+   gutil = require('gulp-util'),
+    bump = require('gulp-bump'),
+  jshint = require('gulp-jshint'),
+ stylish = require('jshint-stylish'),
+ replace = require('gulp-replace'),
+    argv = require('yargs').array('browsers').argv;
 
 var pkg = require('./package.json');
 
@@ -58,22 +53,9 @@ browserify = require('browserify'),
 });
 
 gulp.task('jshint', function (done) {
-    return gulp.src('./javascript/src/**/*.js')
-               .pipe(jshint())
-               .pipe(jshint.reporter(stylish));
-});
-
-gulp.task('karma', function (done) {
-    var karma = require('karma');
-
-    var server = new karma.Server({
-        configFile: 'karma.conf.js',
-        singleRun: argv.dev ? false : true
-    }, function(exitStatus) {
-        done(exitStatus ? "There are failing unit tests" : undefined);
-    });
-
-    server.start();
+    gulp.src('./javascript/src/**/*.js')
+        .pipe(jshint())
+        .pipe(jshint.reporter(stylish));
 });
 
 gulp.task('bump', function (done) { //-v=1.2.3

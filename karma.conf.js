@@ -1,17 +1,12 @@
 module.exports = function (config) {
     config.set({
         basePath: 'javascript',
-        frameworks: ['jasmine'],
+        frameworks: ['jasmine','sinon'],
         files: [
             'dist/lava.js',
             'tests/lava.spec.js'
         ],
-        singleRun: true,
-        plugins: [
-            'karma-jasmine',
-            'karma-chrome-launcher',
-            'karma-phantomjs-launcher'
-        ],
+        singleRun: false,
         reporters: ['dots'],
         port: 9876,
         colors: true,

@@ -1,5 +1,5 @@
 /* jshint undef: true, unused: true */
-/* globals jasmine, describe, it, expect, beforeEach */
+/* globals sinon, jasmine, describe, it, expect, beforeEach */
 
 function mock (name) {
     return jasmine.createSpy(name);
@@ -65,14 +65,6 @@ describe('lava#event()', function () {
     });
 });
 
-describe('lava#registerPackage()', function () {
-    it('Should accept a string package name to add to the "lava._registeredPackages" array.', function () {
-        lava.registerPackage('calendar');
-
-        expect(lava._packages[0]).toBe('calendar');
-    });
-});
-
 describe('lava#storeChart()', function () {
     beforeEach(function () {
         lava._charts = [];
@@ -116,26 +108,25 @@ describe('lava#getChart()', function () {
             lava.getChart('TestChart', {});
         }).toThrowError(lava._errors.InvalidCallback);
     });
-
 });
 
-/*
- describe('lava#loadData()', function () {
+describe('lava#loadData()', function () {
+    var Chart;
+    var data = {d1:100,d2:200};
 
- beforeEach(function () {
- lava.charts = {
- "LineChart" : {
- "TestChart" : new lava.Chart()
- }
- };
- });
+    beforeEach(function () {
+        Chart = getTestChart();
+        stub = sinon.stub(Chart, 'setData').withArgs(data);
 
- it('Should load the json data into the chart.', function () {
- lava.loadData('TestChart', {d1:100,d2:200}, function (chart) {
- expect(chart.data.d1).toEqual(100);
- expect(chart.data.d2).toEqual(200);
- });
- });
+        lava._charts = [];
+        lava._charts.push(Chart);
+    });
 
- }); //lava.loadData()
- */
+    it('Should load the json data into the chart.', function () {
+        lava.loadData('TestChart', {d1:100,d2:200}, function (chart) {
+            Chart.setData.verify();
+            //expect(chart.data.d1).toEqual(100);
+            //expect(chart.data.d2).toEqual(200);
+        });
+    });
+});

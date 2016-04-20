@@ -13,14 +13,15 @@ module.exports = (function() {
         this.type      = type;
         this.label     = label;
         this.element   = null;
-        this.data      = null;
         this.chart     = null;
-        this.options   = null;
+        this.package   = null;
+        this.data      = {};
+        this.options   = {};
         this.formats   = [];
-        this.draw      = null;
-        this.init      = null;
-        this.configure = null;
-        this.render    = null;
+        this.draw      = function(){};
+        this.init      = function(){};
+        this.configure = function(){};
+        this.render    = function(){};
         this.pngOutput = false;
         this._errors   = require('./Errors.js');
     }
@@ -41,7 +42,7 @@ module.exports = (function() {
         this.element = document.getElementById(elemId);
 
         if (! this.element) {
-            throw this._errors.ELEMENT_ID_NOT_FOUND(elemId);
+            throw new this._errors.ElementIdNotFound(elemId);
         }
     };
 
