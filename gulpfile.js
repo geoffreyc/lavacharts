@@ -20,7 +20,7 @@ browserify = require('browserify'),
   watchify = require('watchify');
 
     var b = browserify({
-        debug: pkg.config.debug,
+        debug: process.env.DEBUG || false,
         entries: [pkg.config.entry],
         cache: {},
         packageCache: {},

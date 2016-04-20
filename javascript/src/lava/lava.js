@@ -2,12 +2,12 @@
 /* globals window, document, console, google, module, require */
 
 /**
- * Lava.js
+ * Lava module
  *
- * Author:  Kevin Hill
- * Email:   kevinkhill@gmail.com
- * Github:  https://github.com/kevinkhill/lavacharts
- * License: MIT
+ * @module    lava/Lava
+ * @author    Kevin Hill <kevinkhill@gmail.com>
+ * @copyright (c) 2015, KHill Designs
+ * @license   MIT
  */
 module.exports = (function() {
     "use strict";
@@ -19,6 +19,13 @@ module.exports = (function() {
     var EventEmitter = require('events');
 
     function Lava() {
+        /**
+         * Setting the debug flag
+         *
+         * @type {boolean}
+         */
+        this._debug = false;
+
         /**
          * Urls to Google's resources
          *
@@ -64,7 +71,7 @@ module.exports = (function() {
          * @param {string} Message to log.
          */
         this._log = function (msg) {
-            if (pkg.config.debug) {
+            if (lava._debug) {
                 console.log(msg);
             }
         };
@@ -136,6 +143,12 @@ module.exports = (function() {
      * @param {function} callback
      */
     Lava.prototype.loadData = function (label, json, callback) {
+        var callback = typeof callback !== 'undefined' ? callback : _.noop();
+
+        if (typeof callback !== 'function') {
+            throw new this._errors.InvalidCallback(callback);
+        }
+
         this.getChart(label, function (chart) {
             if (typeof json.data != 'undefined') {
                 chart.setData(json.data);
@@ -149,9 +162,7 @@ module.exports = (function() {
 
             chart.redraw();
 
-            if (typeof callback == 'function') {
-                callback(chart);
-            }
+            callback(chart);
         });
     };
 

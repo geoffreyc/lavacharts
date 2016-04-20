@@ -1,16 +1,33 @@
 /* jshint undef: true, unused: true */
 /* globals sinon, jasmine, describe, it, expect, beforeEach */
 
-function mock (name) {
-    return jasmine.createSpy(name);
-}
-
-function nope() {
+function nope () {
     return 'nope';
 }
 
-function getTestChart() {
+function getTestChart () {
     return new lava.Chart('LineChart', 'TestChart');
+}
+
+function getData () {
+    return {
+        "cols": [
+            {"type": "string", "label": "Stuff"},
+            {"type": "number", "label": "Age"}
+        ],
+        "rows": [
+            {"c": [{"v": "things"}, {"v": 37}]},
+            {"c": [{"v": "thengs"}, {"v": 72}]}
+        ]
+    };
+}
+
+function getOptions () {
+    return {
+        "title": "Company Finances",
+        "legend": "none",
+        "colorAxis": {"colors": ["black", "green"]}
+    };
 }
 
 describe('lava#EventEmitter', function () {
@@ -25,9 +42,12 @@ describe('lava#EventEmitter', function () {
 
 describe('lava#ready()', function () {
     it('Should accept a function to use as a callback.', function () {
-        lava.ready(nope);
+        var callback = sinon.spy(lava, 'ready');
 
-        expect(lava._readyCallback()).toBe('nope');
+        lava.ready(callback);
+        lava.init();
+
+        expect(callback).toHaveBeenCalledOnce();
     });
 
     it('Should throw an "InvalidCallback" error if passed a non-function.', function () {
@@ -41,8 +61,8 @@ describe('lava#event()', function () {
     var Event, Chart;
 
     beforeEach(function () {
-        Event = mock('Event');
-        Chart = mock('Chart');
+        Event = jasmine.createSpy('Event');
+        Chart = jasmine.createSpy('Chart');
     });
 
     it('Should accept an event, chart and callback and return said callback with event and chart as args.', function () {
@@ -73,7 +93,7 @@ describe('lava#storeChart()', function () {
     it('Should store a chart in the "lava._charts" array.', function () {
         lava.storeChart(getTestChart());
 
-        expect(lava._charts[0] instanceof lava.Chart).toBe(true);
+        expect(lava._charts[0] instanceof lava.Chart).toBeTruthy();
     })
 });
 
@@ -83,11 +103,9 @@ describe('lava#getChart()', function () {
         lava._charts.push(getTestChart());
     });
 
-    describe('When given a valid chart label.', function () {
-        it('Should return a valid chart to the callback.', function () {
-            lava.getChart('TestChart', function (chart) {
-                expect(chart instanceof lava.Chart).toBe(true);
-            });
+    it('Should return a valid chart to the callback when given a valid chart label.', function () {
+        lava.getChart('TestChart', function (chart) {
+            expect(chart instanceof lava.Chart).toBeTruthy();
         });
     });
 
@@ -111,22 +129,66 @@ describe('lava#getChart()', function () {
 });
 
 describe('lava#loadData()', function () {
-    var Chart;
-    var data = {d1:100,d2:200};
+    var Chart, Data, Formats;
 
     beforeEach(function () {
         Chart = getTestChart();
-        stub = sinon.stub(Chart, 'setData').withArgs(data);
+        Data = getData();
+        Formats = [{format:""},{format:""}];
+
+        sinon.stub(Chart, 'setData').withArgs(Data);
+        sinon.stub(Chart, 'redraw');
+        sinon.stub(Chart, 'applyFormats').withArgs(Formats);
 
         lava._charts = [];
         lava._charts.push(Chart);
     });
 
-    it('Should load the json data into the chart.', function () {
-        lava.loadData('TestChart', {d1:100,d2:200}, function (chart) {
-            Chart.setData.verify();
-            //expect(chart.data.d1).toEqual(100);
-            //expect(chart.data.d2).toEqual(200);
+    describe('Loading data into the chart from the DataTable->toJson() PHP method', function () {
+        it('should work with no formats', function () {
+            lava.loadData('TestChart', Data, function (chart) {
+                expect(chart.setData).toHaveBeenCalledOnce();
+                expect(chart.setData).toHaveBeenCalledWithExactly(Data);
+
+                expect(chart.redraw).toHaveBeenCalledOnce();
+                expect(chart.redraw).toHaveBeenCalledAfter(chart.setData);
+            });
+        });
+
+        describe('and when the DataTable has formats', function () {
+            var formatted;
+
+            beforeEach(function () {
+                formatted = {
+                    data: Data,
+                    formats: Formats
+                };
+            });
+
+            it('should still load data, but from the ".data" property', function () {
+                lava.loadData('TestChart', formatted, function (chart) {
+                    expect(chart.setData).toHaveBeenCalledOnce();
+                    expect(chart.setData).toHaveBeenCalledWithExactly(formatted.data);
+
+                    expect(chart.redraw).toHaveBeenCalledOnce();
+                    expect(chart.redraw).toHaveBeenCalledAfter(chart.setData);
+                });
+            });
+
+            it('should apply the formats', function () {
+                lava.loadData('TestChart', formatted, function (chart) {
+                    expect(chart.setData).toHaveBeenCalledOnce();
+                    expect(chart.setData).toHaveBeenCalledWithExactly(formatted.data);
+
+                    expect(chart.applyFormats).toHaveBeenCalledOnce();
+                    expect(chart.applyFormats).toHaveBeenCalledAfter(chart.setData);
+                    expect(chart.applyFormats).toHaveBeenCalledWithExactly(formatted.formats);
+
+                    expect(chart.redraw).toHaveBeenCalledOnce();
+                    expect(chart.redraw).toHaveBeenCalledAfter(chart.setData);
+                });
+            });
         });
     });
 });
+
