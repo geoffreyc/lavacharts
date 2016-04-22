@@ -216,3 +216,13 @@ describe('lava#loadOptions()', function () {
         });
     });
 });
+
+describe('lava#redrawCharts()', function () {
+    it('Should be called when the window is resized.', function () {
+        var resize = sinon.spy(lava, 'redrawCharts');
+
+        window.dispatchEvent(new Event('resize'));
+
+        expect(resize).toHaveBeenCalledOnce();
+    });
+});

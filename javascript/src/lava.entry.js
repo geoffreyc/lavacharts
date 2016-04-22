@@ -15,11 +15,11 @@
         /**
          * Adding the resize event listener for redrawing charts.
          */
-        window.addEventListener('resize', window.lava.redrawCharts);
+        window.addEventListener('resize', lava.redrawCharts);
 
         /**
          * Let's go!
          */
-        window.lava.init();
+        lava.init();
     });
 }.apply(window));

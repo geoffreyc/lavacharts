@@ -13,16 +13,28 @@
  */
 module.exports = Dashboard;
 
+/**
+ * Dashboard Class
+ *
+ * This is the javascript version of a dashboard with methods for interacting with
+ * the google chart and the PHP lavachart output.
+ *
+ * @param {String} label
+ * @constructor
+ */
 function Dashboard (label) {
     this.label     = label;
+    this.type      = 'Dashboard';
     this.element   = null;
     this.data      = null;
     this.bindings  = [];
     this.dashboard = null;
-    this.draw      = function(){};
     this.init      = function(){};
     this.configure = function(){};
     this.render    = function(){};
+    this.uuid      = function() {
+        return this.type+'::'+this.label;
+    };
     this._errors   = require('./Errors.js');
 }
 
@@ -30,7 +42,7 @@ function Dashboard (label) {
  * Sets the data for the chart by creating a new DataTable
  *
  * @external "google.visualization.DataTable"
- * @see   {@link https://developers.google.com/chart/interactive/docs/reference#DataTable|DataTable Class}
+ * @see   {@link https://developers.google.com/chart/interactive/docs/reference#DataTable|DataTable}
  * @param {Object}        data      Json representation of a DataTable
  * @param {Array.<Array>} data.cols Array of column definitions
  * @param {Array.<Array>} data.rows Array of row definitions

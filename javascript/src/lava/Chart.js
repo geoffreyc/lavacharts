@@ -24,19 +24,21 @@ module.exports = Chart;
  * @constructor
  */
 function Chart (type, label) {
-    this.type      = type;
     this.label     = label;
+    this.type      = type;
     this.element   = null;
     this.chart     = null;
     this.package   = null;
+    this.pngOutput = false;
     this.data      = {};
     this.options   = {};
     this.formats   = [];
-    this.draw      = function(){};
     this.init      = function(){};
     this.configure = function(){};
     this.render    = function(){};
-    this.pngOutput = false;
+    this.uuid      = function() {
+        return this.type+'::'+this.label;
+    };
     this._errors   = require('./Errors.js');
 }
 
