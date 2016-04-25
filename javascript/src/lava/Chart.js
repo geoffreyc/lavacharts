@@ -35,7 +35,10 @@ function Chart (type, label) {
     this.data      = {};
     this.options   = {};
     this.formats   = [];
-    this.deferred  = Q.defer();
+    this.promises = {
+        configure: Q.defer(),
+        rendered: Q.defer()
+    };
     this.init      = function(){};
     this.configure = function(){};
     this.render    = function(){};

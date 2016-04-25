@@ -226,8 +226,8 @@ module.exports = (function() {
      */
     Lava.prototype.redrawCharts = function () {
         _.debounce(_.bind(function () {
-            this._forEachRenderable(function (chart) {
-                chart.redraw();
+            this._forEachRenderable(function (renderable) {
+                renderable.redraw();
             });
         }, this), 300);
     };
@@ -352,6 +352,28 @@ module.exports = (function() {
     };
 
     /**
+     * Applies the callback to each of the charts and dashboards.
+     *
+     * @private
+     * @param {Function} callback
+     */
+    Lava.prototype._forEachRenderable = function (callback) {
+        _.forEach(this._getRenderables(), callback);
+    };
+
+    /**
+     * Applies the callback and builds an array of return values
+     * for each of the charts and dashboards.
+     *
+     * @private
+     * @param {Function} callback
+     * @return {Array}
+     */
+    Lava.prototype._mapRenderables = function (callback) {
+        return _.map(this._getRenderables(), callback);
+    };
+
+    /**
      * Returns an array of the google packages to load.
      *
      * @private
@@ -362,16 +384,6 @@ module.exports = (function() {
             _.map(this._charts, 'package'),
             _.flatten(_.map(this._dashboards, 'packages'))
         );
-    };
-
-    /**
-     * Applies the callback to each of the charts and dashboards.
-     *
-     * @private
-     * @param {Function} callback
-     */
-    Lava.prototype._forEachRenderable = function (callback) {
-        _.forEach(this._getRenderables(), callback);
     };
 
     /**
@@ -410,11 +422,14 @@ module.exports = (function() {
     };
 
     /**
-     * Listen for the charts to initialize then begin loading google
+     * Initialize the Lava.js module by attaching the event listeners
+     * and calling the charts' and dashboards' init methods
      *
-     * @private
+     * @public
      */
-    Lava.prototype._attachReadyListener = function () {
+    Lava.prototype.init = function () {
+        this._log('lava.js initializing');
+
         var $lava = this;
         var readyCount = 0;
 
@@ -427,67 +442,24 @@ module.exports = (function() {
                 $lava._log('loading google');
 
                 $lava._loadGoogle().then(function() {
-                    return Q.fcall(function() {
-                        var promises = [];
+                    return $lava._mapRenderables(function (renderable) {
+                        $lava._log('configuring ' + renderable.uuid());
 
-                        $lava._forEachRenderable(function (renderable) {
-                            $lava._log('configuring ' + renderable.uuid());
-
-                            promises.push(renderable.configure());
-                        });
-
-                        return promises;
+                        return renderable.configure();
                     });
                 }).then(function () {
-                    return Q.fcall(function() {
-                        var promises = [];
+                    return $lava._mapRenderables(function (renderable) {
+                        $lava._log('rendering ' + renderable.uuid());
 
-                        $lava._forEachRenderable(function (renderable) {
-                            $lava._log('rendering ' + renderable.uuid());
-
-                            renderable.render();
-                        });
-
-                        return promises;
+                        return renderable.render();
                     });
+                }).then(function() {
+                    $lava._log('lava.js ready');
+
+                    $lava._readyCallback();
                 });
             }
         });
-    };
-
-    /**
-     * Listen for all charts and dashboards finish rendering
-     * then fire the ready event
-     *
-     * @private
-     * @callback {this._readyCallback}
-     */
-    Lava.prototype._attachRenderListener = function () {
-        var $lava = this;
-        var renderedCount = 0;
-
-        this.on('rendered', function (renderable) {
-            $lava._log('rendered ' + renderable.uuid());
-
-            renderedCount++;
-
-            if (renderedCount == $lava._getRenderables().length) {
-                $lava._readyCallback();
-            }
-        });
-    };
-
-    /**
-     * Initialize the Lava.js module by attaching the event listeners
-     * and calling the charts' and dashboards' init methods
-     *
-     * @public
-     */
-    Lava.prototype.init = function () {
-        this._log('lava.js initializing');
-
-        this._attachReadyListener();
-        this._attachRenderListener();
 
         this._forEachRenderable(function (renderable) {
             lava._log('initializing ' + renderable.uuid());

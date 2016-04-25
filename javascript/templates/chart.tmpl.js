@@ -12,7 +12,6 @@
         $chart.setPngOutput(<pngOutput>);
 
         $chart.configure = function () {
-
             $chart.render = function (data) {
                 $chart.setData(<chartData>);
 
@@ -29,13 +28,12 @@
                     $chart.drawPng();
                 }
 
-                lava.emit('rendered', $chart);
+                $chart.promises.rendered.resolve();
+                return $chart.promises.rendered.promise;
             };
 
-            $chart.deferred.resolve();
-            
-            return $chart.deferred.promise;
-            //google.charts.setOnLoadCallback($chart.render);
+            $chart.promises.configure.resolve();
+            return $chart.promises.configure.promise;
         };
 
         lava.emit('ready', $chart);
