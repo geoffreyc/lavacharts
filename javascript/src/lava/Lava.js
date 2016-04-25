@@ -460,6 +460,16 @@ module.exports = (function() {
                 });
             }
         });
+    };
+
+
+    /**
+     * Runs the Lava.js module by calling all the renderables' init methods
+     *
+     * @public
+     */
+    Lava.prototype.run = function () {
+        this._log('lava.js running');
 
         this._forEachRenderable(function (renderable) {
             lava._log('initializing ' + renderable.uuid());

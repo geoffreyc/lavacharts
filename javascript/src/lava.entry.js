@@ -21,5 +21,6 @@
          * Let's go!
          */
         lava.init();
+        lava.run();
     });
 }.apply(window));
