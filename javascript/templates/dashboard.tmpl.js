@@ -18,12 +18,13 @@
 
                 <bindings>
 
-                $dash.$dash.draw($dash.data);
+                $dash.dashboard.draw($dash.data);
 
                 lava.emit('rendered', $dash);
             };
 
-            google.charts.setOnLoadCallback($dash.render);
+            $dash.deferred.resolve();
+            return $dash.deferred.promise;
         };
 
         lava.emit('ready', $dash);

@@ -92,16 +92,6 @@ module.exports = (function() {
         };
 
         /**
-         * Reference to the defer method of the Q module.
-         *
-         * @param {String} Message to log.
-         * @private
-         */
-        this._defer = function() {
-            return Q.defer();
-        };
-
-        /**
          * Apply the EventEmitter methods to Lava
          */
         EventEmitter.call(this);
@@ -235,11 +225,11 @@ module.exports = (function() {
      * to make the charts responsive to the browser resizing.
      */
     Lava.prototype.redrawCharts = function () {
-        _.debounce(function () {
+        _.debounce(_.bind(function () {
             this._forEachRenderable(function (chart) {
                 chart.redraw();
             });
-        }.bind(this), 300);
+        }, this), 300);
     };
 
     /**
@@ -387,10 +377,10 @@ module.exports = (function() {
     /**
      * Load Google's apis and resolve the promise when ready.
      */
-    Lava.prototype._loadGoogle = function () {
+    Lava.prototype._loadGoogle = function (callback) {
         var $lava = this;
         var s = document.createElement('script');
-        var deferred = this._defer();
+        var deferred = Q.defer();
 
         s.type = 'text/javascript';
         s.async = true;
@@ -436,14 +426,31 @@ module.exports = (function() {
             if (readyCount == $lava._getRenderables().length) {
                 $lava._log('loading google');
 
-                $lava._loadGoogle()
-                     .then(function() {
-                         $lava._forEachRenderable(function (renderable) {
-                             $lava._log('configuring ' + renderable.uuid());
+                $lava._loadGoogle().then(function() {
+                    return Q.fcall(function() {
+                        var promises = [];
 
-                             renderable.configure();
-                         });
-                     });
+                        $lava._forEachRenderable(function (renderable) {
+                            $lava._log('configuring ' + renderable.uuid());
+
+                            promises.push(renderable.configure());
+                        });
+
+                        return promises;
+                    });
+                }).then(function () {
+                    return Q.fcall(function() {
+                        var promises = [];
+
+                        $lava._forEachRenderable(function (renderable) {
+                            $lava._log('rendering ' + renderable.uuid());
+
+                            renderable.render();
+                        });
+
+                        return promises;
+                    });
+                });
             }
         });
     };

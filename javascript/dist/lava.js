@@ -30,6 +30,8 @@
 /* globals document, google, require, module */
 'use strict';
 
+var Q = require('q');
+
 /**
  * Chart module
  *
@@ -61,13 +63,14 @@ function Chart (type, label) {
     this.data      = {};
     this.options   = {};
     this.formats   = [];
+    this.deferred  = Q.defer();
     this.init      = function(){};
     this.configure = function(){};
     this.render    = function(){};
     this.uuid      = function() {
         return this.type+'::'+this.label;
     };
-    this._errors   = require('./Errors.js');
+    this._errors = require('./Errors.js');
 }
 
 /**
@@ -159,10 +162,12 @@ Chart.prototype.applyFormats = function (formatArr) {
 };
 
 
-},{"./Errors.js":4}],3:[function(require,module,exports){
+},{"./Errors.js":4,"q":17}],3:[function(require,module,exports){
 /* jshint undef: true */
 /* globals document, google, require, module */
 'use strict';
+
+var Q = require('q');
 
 /**
  * Dashboard module
@@ -191,6 +196,7 @@ function Dashboard (label) {
     this.data      = null;
     this.bindings  = [];
     this.dashboard = null;
+    this.deferred  = Q.defer();
     this.init      = function(){};
     this.configure = function(){};
     this.render    = function(){};
@@ -228,7 +234,7 @@ Dashboard.prototype.setElement = function (elemId) {
     }
 };
 
-},{"./Errors.js":4}],4:[function(require,module,exports){
+},{"./Errors.js":4,"q":17}],4:[function(require,module,exports){
 /* jshint undef: true */
 /* globals module, require */
 'use strict';
@@ -416,16 +422,6 @@ module.exports = (function() {
         };
 
         /**
-         * Reference to the defer method of the Q module.
-         *
-         * @param {String} Message to log.
-         * @private
-         */
-        this._defer = function() {
-            return Q.defer();
-        };
-
-        /**
          * Apply the EventEmitter methods to Lava
          */
         EventEmitter.call(this);
@@ -559,11 +555,11 @@ module.exports = (function() {
      * to make the charts responsive to the browser resizing.
      */
     Lava.prototype.redrawCharts = function () {
-        _.debounce(function () {
+        _.debounce(_.bind(function () {
             this._forEachRenderable(function (chart) {
                 chart.redraw();
             });
-        }.bind(this), 300);
+        }, this), 300);
     };
 
     /**
@@ -711,10 +707,10 @@ module.exports = (function() {
     /**
      * Load Google's apis and resolve the promise when ready.
      */
-    Lava.prototype._loadGoogle = function () {
+    Lava.prototype._loadGoogle = function (callback) {
         var $lava = this;
         var s = document.createElement('script');
-        var deferred = this._defer();
+        var deferred = Q.defer();
 
         s.type = 'text/javascript';
         s.async = true;
@@ -760,14 +756,31 @@ module.exports = (function() {
             if (readyCount == $lava._getRenderables().length) {
                 $lava._log('loading google');
 
-                $lava._loadGoogle()
-                     .then(function() {
-                         $lava._forEachRenderable(function (renderable) {
-                             $lava._log('configuring ' + renderable.uuid());
+                $lava._loadGoogle().then(function() {
+                    return Q.fcall(function() {
+                        var promises = [];
 
-                             renderable.configure();
-                         });
-                     });
+                        $lava._forEachRenderable(function (renderable) {
+                            $lava._log('configuring ' + renderable.uuid());
+
+                            promises.push(renderable.configure());
+                        });
+
+                        return promises;
+                    });
+                }).then(function () {
+                    return Q.fcall(function() {
+                        var promises = [];
+
+                        $lava._forEachRenderable(function (renderable) {
+                            $lava._log('rendering ' + renderable.uuid());
+
+                            renderable.render();
+                        });
+
+                        return promises;
+                    });
+                });
             }
         });
     };

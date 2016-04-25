@@ -2,6 +2,8 @@
 /* globals document, google, require, module */
 'use strict';
 
+var Q = require('q');
+
 /**
  * Dashboard module
  *
@@ -29,6 +31,7 @@ function Dashboard (label) {
     this.data      = null;
     this.bindings  = [];
     this.dashboard = null;
+    this.deferred  = Q.defer();
     this.init      = function(){};
     this.configure = function(){};
     this.render    = function(){};

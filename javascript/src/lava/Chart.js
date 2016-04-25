@@ -2,6 +2,8 @@
 /* globals document, google, require, module */
 'use strict';
 
+var Q = require('q');
+
 /**
  * Chart module
  *
@@ -33,13 +35,14 @@ function Chart (type, label) {
     this.data      = {};
     this.options   = {};
     this.formats   = [];
+    this.deferred  = Q.defer();
     this.init      = function(){};
     this.configure = function(){};
     this.render    = function(){};
     this.uuid      = function() {
         return this.type+'::'+this.label;
     };
-    this._errors   = require('./Errors.js');
+    this._errors = require('./Errors.js');
 }
 
 /**
