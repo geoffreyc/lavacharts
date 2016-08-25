@@ -92,6 +92,17 @@ class JavascriptFactory
     {
         return $this->coreJsRendered;
     }
+    
+    /**
+     * Set as rendered
+     *
+     * @access public
+     * @return boolean
+     */
+    public function setAsCoreJsRendered($state = true)
+    {
+        return $this->coreJsRendered = $state;
+    }
 
     /**
      * Gets the Google chart api and lava.js core.
