@@ -340,6 +340,18 @@ class Lavacharts
     {
         return $this->jsFactory->getCoreJs();
     }
+    
+    /**
+     * Set JS as already rendered
+     *
+     * @access public
+     * @since  2.3.0
+     * @return string Google Chart API and lava.js script blocks
+     */
+    public function jsapiRendered($state = true)
+    {
+        return $this->jsFactory->setAsCoreJsRendered($state);
+    }
 
     /**
      * Checks to see if the given chart or dashboard exists in the volcano storage.
